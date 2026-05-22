@@ -33,8 +33,7 @@ public class GlobalExceptionHandler {
             MethodArgumentNotValidException.class,
             HttpMessageNotReadableException.class,
             ServletRequestBindingException.class,
-            ConstraintViolationException.class,
-            HttpRequestMethodNotSupportedException.class
+            ConstraintViolationException.class
     })
     public ResponseEntity<ErrorResponse> handleBadRequest(Exception e) {
         if (e instanceof MethodArgumentNotValidException validationException) {
@@ -58,6 +57,14 @@ public class GlobalExceptionHandler {
         return ResponseEntity
                 .status(CommonErrorCode.INVALID_INPUT_VALUE.getHttpStatus())
                 .body(ErrorResponse.of(CommonErrorCode.INVALID_INPUT_VALUE));
+    }
+
+    @ExceptionHandler(HttpRequestMethodNotSupportedException.class)
+    public ResponseEntity<ErrorResponse> handleMethodNotSupported(HttpRequestMethodNotSupportedException e) {
+        log.warn("method not supported: {}", e.getMessage());
+        return ResponseEntity
+                .status(CommonErrorCode.METHOD_NOT_ALLOWED.getHttpStatus())
+                .body(ErrorResponse.of(CommonErrorCode.METHOD_NOT_ALLOWED));
     }
 
     @ExceptionHandler(Exception.class)

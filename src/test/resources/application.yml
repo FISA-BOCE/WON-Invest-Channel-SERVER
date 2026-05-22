@@ -13,7 +13,7 @@ spring:
     open-in-view: false
 
 feign:
-  common-server-url: http://localhost:8080
+  common-server-url: ${COMMON_SERVER_URL:http://localhost:18080}
 
 jwt:
   secret: test-jwt-secret-key-must-be-32-characters!!

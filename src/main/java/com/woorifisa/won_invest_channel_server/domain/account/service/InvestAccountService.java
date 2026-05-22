@@ -9,6 +9,7 @@ import com.woorifisa.won_invest_channel_server.domain.account.external.dto.Mappi
 import com.woorifisa.won_invest_channel_server.domain.account.model.AccountStatus;
 import com.woorifisa.won_invest_channel_server.domain.account.model.InvestChnAccountSummary;
 import com.woorifisa.won_invest_channel_server.domain.account.repository.InvestChnAccountSummaryRepository;
+import com.woorifisa.won_invest_channel_server.global.exception.code.CommonErrorCode;
 import com.woorifisa.won_invest_channel_server.global.exception.handler.BusinessException;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -24,9 +25,11 @@ public class InvestAccountService {
     private final CommonMappingApi commonMappingApi;
     private final InvestChnAccountSummaryRepository accountSummaryRepository;
 
-    @Transactional
     public LinkAccountResponse linkAccount(String userUuid, LinkAccountRequest request) {
         MappingStatusResponse mappingStatus = commonMappingApi.getMappingStatus(userUuid);
+        if (mappingStatus == null || mappingStatus.invest() == null) {
+            throw new BusinessException(CommonErrorCode.BAD_GATEWAY);
+        }
         if (mappingStatus.invest().isConnected()) {
             throw new BusinessException(InvestAccountErrorCode.ALREADY_LINKED);
         }
