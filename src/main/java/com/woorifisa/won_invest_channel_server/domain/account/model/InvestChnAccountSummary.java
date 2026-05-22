@@ -27,8 +27,14 @@ public class InvestChnAccountSummary extends BaseTimeEntity {
     @Column(name = "invest_account_uuid", nullable = false, unique = true)
     private String investAccountUuid;
 
+    @Column(name = "invest_user_uuid", nullable = false, unique = true)
+    private String investUserUuid;
+
     @Column(name = "user_uuid", nullable = false)
     private String userUuid;
+
+    @Column(name = "account_no_display", nullable = false)
+    private String accountNoDisplay;
 
     @Enumerated(EnumType.STRING)
     @Column(name = "account_status", nullable = false)

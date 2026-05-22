@@ -14,6 +14,8 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.LocalDateTime;
+
 @Service
 @RequiredArgsConstructor
 @Transactional(readOnly = true)
@@ -42,11 +44,14 @@ public class InvestAccountService {
         }
 
         commonMappingApi.linkInvestMapping(userUuid,
-                new LinkInvestMappingRequest(request.investAccountUuid()));
+                new LinkInvestMappingRequest(accountSummary.getInvestUserUuid()));
 
         return new LinkAccountResponse(
                 accountSummary.getInvestAccountUuid(),
-                accountSummary.getUserUuid()
+                accountSummary.getAccountNoDisplay(),
+                accountSummary.getAccountStatus(),
+                true,
+                LocalDateTime.now()
         );
     }
 }
