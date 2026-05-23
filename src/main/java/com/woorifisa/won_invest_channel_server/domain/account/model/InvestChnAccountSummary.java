@@ -12,6 +12,10 @@ import jakarta.persistence.Table;
 import lombok.AccessLevel;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
+import org.hibernate.annotations.JdbcTypeCode;
+import org.hibernate.type.SqlTypes;
+
+import java.util.UUID;
 
 @Entity
 @Getter
@@ -24,14 +28,17 @@ public class InvestChnAccountSummary extends BaseTimeEntity {
     @Column(name = "id")
     private Long id;
 
+    @JdbcTypeCode(SqlTypes.VARCHAR)
     @Column(name = "invest_account_uuid", nullable = false, unique = true)
-    private String investAccountUuid;
+    private UUID investAccountUuid;
 
+    @JdbcTypeCode(SqlTypes.VARCHAR)
     @Column(name = "invest_user_uuid", nullable = false, unique = true)
-    private String investUserUuid;
+    private UUID investUserUuid;
 
+    @JdbcTypeCode(SqlTypes.VARCHAR)
     @Column(name = "user_uuid", nullable = false)
-    private String userUuid;
+    private UUID userUuid;
 
     @Column(name = "account_no_display", nullable = false)
     private String accountNoDisplay;

@@ -11,11 +11,13 @@ import com.woorifisa.won_invest_channel_server.domain.account.model.InvestChnAcc
 import com.woorifisa.won_invest_channel_server.domain.account.repository.InvestChnAccountSummaryRepository;
 import com.woorifisa.won_invest_channel_server.global.exception.code.CommonErrorCode;
 import com.woorifisa.won_invest_channel_server.global.exception.handler.BusinessException;
+import com.woorifisa.won_invest_channel_server.global.response.ApiResponse;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
+import java.util.UUID;
 
 @Service
 @RequiredArgsConstructor
@@ -25,12 +27,14 @@ public class InvestAccountService {
     private final CommonMappingApi commonMappingApi;
     private final InvestChnAccountSummaryRepository accountSummaryRepository;
 
-    public LinkAccountResponse linkAccount(String userUuid, LinkAccountRequest request) {
-        MappingStatusResponse mappingStatus = commonMappingApi.getMappingStatus(userUuid);
-        if (mappingStatus == null || mappingStatus.invest() == null) {
+    @Transactional
+    public LinkAccountResponse linkAccount(UUID userUuid, LinkAccountRequest request) {
+        ApiResponse<MappingStatusResponse> mappingStatusResponse = commonMappingApi.getMappingStatus(userUuid);
+        if (mappingStatusResponse == null || mappingStatusResponse.data() == null
+                || mappingStatusResponse.data().invest() == null) {
             throw new BusinessException(CommonErrorCode.BAD_GATEWAY);
         }
-        if (mappingStatus.invest().isConnected()) {
+        if (mappingStatusResponse.data().invest().isConnected()) {
             throw new BusinessException(InvestAccountErrorCode.ALREADY_LINKED);
         }
 
@@ -52,7 +56,7 @@ public class InvestAccountService {
         return new LinkAccountResponse(
                 accountSummary.getInvestAccountUuid(),
                 accountSummary.getAccountNoDisplay(),
-                accountSummary.getAccountStatus(),
+                accountSummary.getAccountStatus().name(),
                 true,
                 LocalDateTime.now()
         );

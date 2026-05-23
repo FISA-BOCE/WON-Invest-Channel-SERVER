@@ -1,5 +1,6 @@
 package com.woorifisa.won_invest_channel_server.global.config;
 
+import com.woorifisa.won_invest_channel_server.global.security.AuthenticatedUser;
 import com.woorifisa.won_invest_channel_server.global.util.JwtUtil;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
@@ -24,6 +25,7 @@ import org.springframework.web.filter.OncePerRequestFilter;
 
 import java.io.IOException;
 import java.util.Collections;
+import java.util.UUID;
 
 @Configuration
 @EnableWebSecurity
@@ -63,10 +65,11 @@ public class SecurityConfig {
             String token = resolveToken(request);
             if (StringUtils.hasText(token)) {
                 try {
-                    String userUuid = jwtUtil.extractUserUuid(token);
-                    if (StringUtils.hasText(userUuid)) {
+                    String userUuidStr = jwtUtil.extractUserUuid(token);
+                    if (StringUtils.hasText(userUuidStr)) {
+                        AuthenticatedUser authenticatedUser = new AuthenticatedUser(UUID.fromString(userUuidStr));
                         UsernamePasswordAuthenticationToken authentication =
-                                new UsernamePasswordAuthenticationToken(userUuid, null, Collections.emptyList());
+                                new UsernamePasswordAuthenticationToken(authenticatedUser, null, Collections.emptyList());
                         SecurityContextHolder.getContext().setAuthentication(authentication);
                     }
                 } catch (Exception e) {

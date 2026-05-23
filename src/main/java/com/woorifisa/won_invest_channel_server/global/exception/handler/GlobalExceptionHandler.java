@@ -41,15 +41,18 @@ public class GlobalExceptionHandler {
                     .map(fieldError -> fieldError.getField() + ":" + fieldError.getCode())
                     .collect(Collectors.joining(", "));
             log.warn("bad request: type={}, fields={}", e.getClass().getSimpleName(), fields, e);
+
         } else if (e instanceof ConstraintViolationException constraintViolationException) {
             String violations = constraintViolationException.getConstraintViolations().stream()
                     .map(violation -> violation.getPropertyPath() + ":" + violation.getMessageTemplate())
                     .collect(Collectors.joining(", "));
             log.warn("bad request: type={}, violations={}", e.getClass().getSimpleName(), violations, e);
+
         } else if (e instanceof HttpMessageNotReadableException notReadableException) {
             Throwable rootCause = notReadableException.getMostSpecificCause();
             String rootCauseType = rootCause == null ? "unknown" : rootCause.getClass().getSimpleName();
             log.warn("bad request: type={}, rootCause={}", e.getClass().getSimpleName(), rootCauseType, e);
+
         } else {
             log.warn("bad request: type={}", e.getClass().getSimpleName(), e);
         }
@@ -62,6 +65,7 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(HttpRequestMethodNotSupportedException.class)
     public ResponseEntity<ErrorResponse> handleMethodNotSupported(HttpRequestMethodNotSupportedException e) {
         log.warn("method not supported: {}", e.getMessage());
+
         return ResponseEntity
                 .status(CommonErrorCode.METHOD_NOT_ALLOWED.getHttpStatus())
                 .body(ErrorResponse.of(CommonErrorCode.METHOD_NOT_ALLOWED));
@@ -70,6 +74,7 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(Exception.class)
     public ResponseEntity<ErrorResponse> handleException(Exception e) {
         log.error("unexpected exception", e);
+
         return ResponseEntity
                 .status(CommonErrorCode.INTERNAL_SERVER_ERROR.getHttpStatus())
                 .body(ErrorResponse.of(CommonErrorCode.INTERNAL_SERVER_ERROR));

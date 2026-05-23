@@ -5,6 +5,7 @@ import com.woorifisa.won_invest_channel_server.domain.account.dto.response.LinkA
 import com.woorifisa.won_invest_channel_server.domain.account.service.InvestAccountService;
 import com.woorifisa.won_invest_channel_server.global.response.ApiResponse;
 import com.woorifisa.won_invest_channel_server.global.response.SuccessStatus;
+import com.woorifisa.won_invest_channel_server.global.security.AuthenticatedUser;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
@@ -18,7 +19,7 @@ import org.springframework.web.bind.annotation.RestController;
 
 @RestController
 @RequiredArgsConstructor
-@RequestMapping("/api/v1/accounts")
+@RequestMapping("/api/invest/accounts")
 @Tag(name = "Account", description = "증권계좌 연결 API")
 public class InvestAccountApi {
 
@@ -27,10 +28,10 @@ public class InvestAccountApi {
     @Operation(summary = "증권계좌 연결", description = "증권계좌를 연결하는 API입니다.")
     @PostMapping("/link")
     public ResponseEntity<ApiResponse<LinkAccountResponse>> linkAccount(
-            @AuthenticationPrincipal String userUuid,
+            @AuthenticationPrincipal AuthenticatedUser authenticatedUser,
             @Valid @RequestBody LinkAccountRequest request
     ) {
-        LinkAccountResponse response = investAccountService.linkAccount(userUuid, request);
+        LinkAccountResponse response = investAccountService.linkAccount(authenticatedUser.userUuid(), request);
         return ResponseEntity
                 .status(SuccessStatus.ACCOUNT_LINKED.getHttpStatus())
                 .body(ApiResponse.of(SuccessStatus.ACCOUNT_LINKED, response));
