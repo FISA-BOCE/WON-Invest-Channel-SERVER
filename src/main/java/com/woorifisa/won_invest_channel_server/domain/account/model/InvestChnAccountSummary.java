@@ -5,8 +5,6 @@ import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.EnumType;
 import jakarta.persistence.Enumerated;
-import jakarta.persistence.GeneratedValue;
-import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.Table;
 import lombok.AccessLevel;
@@ -24,12 +22,8 @@ import java.util.UUID;
 public class InvestChnAccountSummary extends BaseTimeEntity {
 
     @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
-    @Column(name = "id")
-    private Long id;
-
     @JdbcTypeCode(SqlTypes.VARCHAR)
-    @Column(name = "invest_account_uuid", nullable = false, unique = true)
+    @Column(name = "invest_account_uuid", nullable = false)
     private UUID investAccountUuid;
 
     @JdbcTypeCode(SqlTypes.VARCHAR)

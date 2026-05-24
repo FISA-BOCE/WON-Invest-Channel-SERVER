@@ -3,6 +3,8 @@ package com.woorifisa.won_invest_channel_server.domain.account.api;
 import com.woorifisa.won_invest_channel_server.domain.account.dto.request.LinkAccountRequest;
 import com.woorifisa.won_invest_channel_server.domain.account.dto.response.LinkAccountResponse;
 import com.woorifisa.won_invest_channel_server.domain.account.service.InvestAccountService;
+import com.woorifisa.won_invest_channel_server.global.exception.code.CommonErrorCode;
+import com.woorifisa.won_invest_channel_server.global.exception.handler.BusinessException;
 import com.woorifisa.won_invest_channel_server.global.response.ApiResponse;
 import com.woorifisa.won_invest_channel_server.global.response.SuccessStatus;
 import com.woorifisa.won_invest_channel_server.global.security.AuthenticatedUser;
@@ -31,6 +33,9 @@ public class InvestAccountApi {
             @AuthenticationPrincipal AuthenticatedUser authenticatedUser,
             @Valid @RequestBody LinkAccountRequest request
     ) {
+        if (authenticatedUser == null) {
+            throw new BusinessException(CommonErrorCode.UNAUTHORIZED);
+        }
         LinkAccountResponse response = investAccountService.linkAccount(authenticatedUser.userUuid(), request);
         return ResponseEntity
                 .status(SuccessStatus.ACCOUNT_LINKED.getHttpStatus())

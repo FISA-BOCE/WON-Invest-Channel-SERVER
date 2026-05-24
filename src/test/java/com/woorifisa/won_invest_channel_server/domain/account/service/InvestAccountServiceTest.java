@@ -9,9 +9,11 @@ import com.woorifisa.won_invest_channel_server.domain.account.external.dto.Mappi
 import com.woorifisa.won_invest_channel_server.domain.account.model.AccountStatus;
 import com.woorifisa.won_invest_channel_server.domain.account.model.InvestChnAccountSummary;
 import com.woorifisa.won_invest_channel_server.domain.account.repository.InvestChnAccountSummaryRepository;
+import com.woorifisa.won_invest_channel_server.global.exception.code.CommonErrorCode;
 import com.woorifisa.won_invest_channel_server.global.exception.handler.BusinessException;
 import com.woorifisa.won_invest_channel_server.global.response.ApiResponse;
 import com.woorifisa.won_invest_channel_server.global.response.SuccessStatus;
+import feign.FeignException;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -24,8 +26,10 @@ import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.BDDMockito.given;
+import static org.mockito.BDDMockito.willThrow;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 
@@ -62,7 +66,7 @@ class InvestAccountServiceTest {
         given(accountSummary.getAccountNoDisplay()).willReturn("123-456-789");
 
         given(commonMappingApi.getMappingStatus(userUuid)).willReturn(mappingResponse);
-        given(accountSummaryRepository.findByInvestAccountUuid(investAccountUuid)).willReturn(Optional.of(accountSummary));
+        given(accountSummaryRepository.findById(investAccountUuid)).willReturn(Optional.of(accountSummary));
 
         // when
         LinkAccountResponse response = investAccountService.linkAccount(userUuid, request);
@@ -108,7 +112,7 @@ class InvestAccountServiceTest {
         ApiResponse<MappingStatusResponse> mappingResponse = ApiResponse.of(SuccessStatus.OK, mappingStatus);
 
         given(commonMappingApi.getMappingStatus(userUuid)).willReturn(mappingResponse);
-        given(accountSummaryRepository.findByInvestAccountUuid(investAccountUuid)).willReturn(Optional.empty());
+        given(accountSummaryRepository.findById(investAccountUuid)).willReturn(Optional.empty());
 
         // when & then
         assertThatThrownBy(() -> investAccountService.linkAccount(userUuid, request))
@@ -134,13 +138,58 @@ class InvestAccountServiceTest {
         given(accountSummary.getUserUuid()).willReturn(otherUserUuid);
 
         given(commonMappingApi.getMappingStatus(userUuid)).willReturn(mappingResponse);
-        given(accountSummaryRepository.findByInvestAccountUuid(investAccountUuid)).willReturn(Optional.of(accountSummary));
+        given(accountSummaryRepository.findById(investAccountUuid)).willReturn(Optional.of(accountSummary));
 
         // when & then
         assertThatThrownBy(() -> investAccountService.linkAccount(userUuid, request))
                 .isInstanceOf(BusinessException.class)
                 .satisfies(ex -> assertThat(((BusinessException) ex).getErrorCode())
                         .isEqualTo(InvestAccountErrorCode.NOT_ACCOUNT_OWNER));
+    }
+
+    @Test
+    @DisplayName("getMappingStatus Feign 오류 시 BAD_GATEWAY 예외 발생")
+    void linkAccount_getMappingStatus_feignException() {
+        // given
+        UUID userUuid = UUID.randomUUID();
+        UUID investAccountUuid = UUID.randomUUID();
+        LinkAccountRequest request = new LinkAccountRequest(investAccountUuid);
+
+        given(commonMappingApi.getMappingStatus(userUuid)).willThrow(FeignException.class);
+
+        // when & then
+        assertThatThrownBy(() -> investAccountService.linkAccount(userUuid, request))
+                .isInstanceOf(BusinessException.class)
+                .satisfies(ex -> assertThat(((BusinessException) ex).getErrorCode())
+                        .isEqualTo(CommonErrorCode.BAD_GATEWAY));
+    }
+
+    @Test
+    @DisplayName("linkInvestMapping Feign 오류 시 BAD_GATEWAY 예외 발생")
+    void linkAccount_linkInvestMapping_feignException() {
+        // given
+        UUID userUuid = UUID.randomUUID();
+        UUID investAccountUuid = UUID.randomUUID();
+        UUID investUserUuid = UUID.randomUUID();
+        LinkAccountRequest request = new LinkAccountRequest(investAccountUuid);
+
+        MappingStatusResponse mappingStatus = new MappingStatusResponse(new MappingStatusResponse.InvestStatus(false));
+        ApiResponse<MappingStatusResponse> mappingResponse = ApiResponse.of(SuccessStatus.OK, mappingStatus);
+
+        InvestChnAccountSummary accountSummary = mock(InvestChnAccountSummary.class);
+        given(accountSummary.getUserUuid()).willReturn(userUuid);
+        given(accountSummary.getAccountStatus()).willReturn(AccountStatus.ACTIVE);
+        given(accountSummary.getInvestUserUuid()).willReturn(investUserUuid);
+
+        given(commonMappingApi.getMappingStatus(userUuid)).willReturn(mappingResponse);
+        given(accountSummaryRepository.findById(investAccountUuid)).willReturn(Optional.of(accountSummary));
+        willThrow(FeignException.class).given(commonMappingApi).linkInvestMapping(eq(userUuid), any());
+
+        // when & then
+        assertThatThrownBy(() -> investAccountService.linkAccount(userUuid, request))
+                .isInstanceOf(BusinessException.class)
+                .satisfies(ex -> assertThat(((BusinessException) ex).getErrorCode())
+                        .isEqualTo(CommonErrorCode.BAD_GATEWAY));
     }
 
     @Test
@@ -160,7 +209,7 @@ class InvestAccountServiceTest {
         given(accountSummary.getAccountStatus()).willReturn(AccountStatus.INACTIVE);
 
         given(commonMappingApi.getMappingStatus(userUuid)).willReturn(mappingResponse);
-        given(accountSummaryRepository.findByInvestAccountUuid(investAccountUuid)).willReturn(Optional.of(accountSummary));
+        given(accountSummaryRepository.findById(investAccountUuid)).willReturn(Optional.of(accountSummary));
 
         // when & then
         assertThatThrownBy(() -> investAccountService.linkAccount(userUuid, request))

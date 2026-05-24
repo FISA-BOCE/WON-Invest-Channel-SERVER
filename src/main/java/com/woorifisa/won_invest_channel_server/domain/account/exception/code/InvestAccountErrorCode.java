@@ -5,10 +5,10 @@ import org.springframework.http.HttpStatus;
 
 public enum InvestAccountErrorCode implements ErrorCode {
 
-    ACCOUNT_NOT_FOUND(HttpStatus.NOT_FOUND, "INVST_404_001", "증권계좌 정보를 찾을 수 없습니다."),
-    INVALID_ACCOUNT_STATUS(HttpStatus.BAD_REQUEST, "INVST_400_001", "사용할 수 없는 증권계좌 상태입니다."),
-    NOT_ACCOUNT_OWNER(HttpStatus.FORBIDDEN, "INVST_403_001", "해당 증권계좌에 접근할 권한이 없습니다."),
-    ALREADY_LINKED(HttpStatus.CONFLICT, "INVST_409_001", "이미 연결된 증권계좌입니다.");
+    ACCOUNT_NOT_FOUND(HttpStatus.NOT_FOUND, "INVEST_404_001", "증권계좌 정보를 찾을 수 없습니다."),
+    INVALID_ACCOUNT_STATUS(HttpStatus.BAD_REQUEST, "INVEST_400_001", "사용할 수 없는 증권계좌 상태입니다."),
+    NOT_ACCOUNT_OWNER(HttpStatus.FORBIDDEN, "INVEST_403_001", "해당 증권계좌에 접근할 권한이 없습니다."),
+    ALREADY_LINKED(HttpStatus.CONFLICT, "INVEST_409_001", "이미 연결된 증권계좌입니다.");
 
     private final HttpStatus httpStatus;
     private final String code;

@@ -12,6 +12,7 @@ import com.woorifisa.won_invest_channel_server.domain.account.repository.InvestC
 import com.woorifisa.won_invest_channel_server.global.exception.code.CommonErrorCode;
 import com.woorifisa.won_invest_channel_server.global.exception.handler.BusinessException;
 import com.woorifisa.won_invest_channel_server.global.response.ApiResponse;
+import feign.FeignException;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -29,7 +30,12 @@ public class InvestAccountService {
 
     @Transactional
     public LinkAccountResponse linkAccount(UUID userUuid, LinkAccountRequest request) {
-        ApiResponse<MappingStatusResponse> mappingStatusResponse = commonMappingApi.getMappingStatus(userUuid);
+        ApiResponse<MappingStatusResponse> mappingStatusResponse;
+        try {
+            mappingStatusResponse = commonMappingApi.getMappingStatus(userUuid);
+        } catch (FeignException e) {
+            throw new BusinessException(CommonErrorCode.BAD_GATEWAY);
+        }
         if (mappingStatusResponse == null || mappingStatusResponse.data() == null
                 || mappingStatusResponse.data().invest() == null) {
             throw new BusinessException(CommonErrorCode.BAD_GATEWAY);
@@ -39,7 +45,7 @@ public class InvestAccountService {
         }
 
         InvestChnAccountSummary accountSummary = accountSummaryRepository
-                .findByInvestAccountUuid(request.investAccountUuid())
+                .findById(request.investAccountUuid())
                 .orElseThrow(() -> new BusinessException(InvestAccountErrorCode.ACCOUNT_NOT_FOUND));
 
         if (!accountSummary.getUserUuid().equals(userUuid)) {
@@ -50,8 +56,12 @@ public class InvestAccountService {
             throw new BusinessException(InvestAccountErrorCode.INVALID_ACCOUNT_STATUS);
         }
 
-        commonMappingApi.linkInvestMapping(userUuid,
-                new LinkInvestMappingRequest(accountSummary.getInvestUserUuid()));
+        try {
+            commonMappingApi.linkInvestMapping(userUuid,
+                    new LinkInvestMappingRequest(accountSummary.getInvestUserUuid()));
+        } catch (FeignException e) {
+            throw new BusinessException(CommonErrorCode.BAD_GATEWAY);
+        }
 
         return new LinkAccountResponse(
                 accountSummary.getInvestAccountUuid(),
