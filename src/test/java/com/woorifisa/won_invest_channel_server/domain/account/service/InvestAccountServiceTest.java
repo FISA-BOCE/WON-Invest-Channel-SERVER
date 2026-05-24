@@ -155,7 +155,8 @@ class InvestAccountServiceTest {
         UUID investAccountUuid = UUID.randomUUID();
         LinkAccountRequest request = new LinkAccountRequest(investAccountUuid);
 
-        given(commonMappingApi.getMappingStatus(userUuid)).willThrow(FeignException.class);
+        FeignException getStatusException = mock(FeignException.class);
+        given(commonMappingApi.getMappingStatus(userUuid)).willThrow(getStatusException);
 
         // when & then
         assertThatThrownBy(() -> investAccountService.linkAccount(userUuid, request))
@@ -183,7 +184,8 @@ class InvestAccountServiceTest {
 
         given(commonMappingApi.getMappingStatus(userUuid)).willReturn(mappingResponse);
         given(accountSummaryRepository.findById(investAccountUuid)).willReturn(Optional.of(accountSummary));
-        willThrow(FeignException.class).given(commonMappingApi).linkInvestMapping(eq(userUuid), any());
+        FeignException linkMappingException = mock(FeignException.class);
+        willThrow(linkMappingException).given(commonMappingApi).linkInvestMapping(eq(userUuid), any());
 
         // when & then
         assertThatThrownBy(() -> investAccountService.linkAccount(userUuid, request))
