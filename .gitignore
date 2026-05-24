@@ -39,7 +39,5 @@ out/
 ### Claude Code ###
 .claude/
 
-src/main/resources/application.yaml
-src/main/resources/application-local.yaml
-src/main/resources/application-local.yml
-src/main/resources/application-test.yaml
+### Local config ###
+src/main/resources/application*.yml
