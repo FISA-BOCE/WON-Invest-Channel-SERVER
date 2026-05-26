@@ -1,13 +1,12 @@
 package com.woorifisa.won_invest_channel_server.domain.account.service;
 
 import com.woorifisa.won_invest_channel_server.domain.account.dto.request.CreateInvestAccountRequest;
-import com.woorifisa.won_invest_channel_server.domain.account.dto.response.CreateInvestAccountResponse;
-import com.woorifisa.won_invest_channel_server.domain.account.exception.InvestAccountErrorCode;
-import com.woorifisa.won_invest_channel_server.domain.account.external.InvestCoreAccountApi;
 import com.woorifisa.won_invest_channel_server.domain.account.dto.request.LinkAccountRequest;
+import com.woorifisa.won_invest_channel_server.domain.account.dto.response.CreateInvestAccountResponse;
 import com.woorifisa.won_invest_channel_server.domain.account.dto.response.LinkAccountResponse;
 import com.woorifisa.won_invest_channel_server.domain.account.exception.code.InvestAccountErrorCode;
 import com.woorifisa.won_invest_channel_server.domain.account.external.CommonMappingApi;
+import com.woorifisa.won_invest_channel_server.domain.account.external.InvestCoreAccountApi;
 import com.woorifisa.won_invest_channel_server.domain.account.external.dto.LinkInvestMappingRequest;
 import com.woorifisa.won_invest_channel_server.domain.account.external.dto.MappingStatusResponse;
 import com.woorifisa.won_invest_channel_server.domain.account.model.AccountStatus;
@@ -15,9 +14,9 @@ import com.woorifisa.won_invest_channel_server.domain.account.model.InvestChnAcc
 import com.woorifisa.won_invest_channel_server.domain.account.repository.InvestChnAccountSummaryRepository;
 import com.woorifisa.won_invest_channel_server.global.exception.code.CommonErrorCode;
 import com.woorifisa.won_invest_channel_server.global.exception.handler.BusinessException;
-import com.woorifisa.won_invest_channel_server.global.util.JwtUtil;
 import com.woorifisa.won_invest_channel_server.global.response.ApiResponse;
 import com.woorifisa.won_invest_channel_server.global.response.SuccessStatus;
+import com.woorifisa.won_invest_channel_server.global.util.JwtUtil;
 import feign.FeignException;
 import feign.Request;
 import feign.RequestTemplate;
@@ -51,11 +50,8 @@ class InvestAccountServiceTest {
 
     @Mock private InvestCoreAccountApi investCoreAccountApi;
     @Mock private JwtUtil jwtUtil;
-    @Mock
-    private CommonMappingApi commonMappingApi;
-
-    @Mock
-    private InvestChnAccountSummaryRepository accountSummaryRepository;
+    @Mock private CommonMappingApi commonMappingApi;
+    @Mock private InvestChnAccountSummaryRepository accountSummaryRepository;
 
     @InjectMocks
     private InvestAccountService investAccountService;
@@ -87,11 +83,110 @@ class InvestAccountServiceTest {
         return new InvestCoreAccountApi.CoreApiResponse(201, "증권계좌 개설이 완료되었습니다.", data);
     }
 
+    // -------------------------------------------------------------------------
+    // openNewInvestAccount
+    // -------------------------------------------------------------------------
+
+    @Test
+    @DisplayName("정상 요청 → Core 응답 매핑 성공")
+    void openNewInvestAccount_success() {
+        // given
+        CreateInvestAccountRequest request = validRequest();
+        given(jwtUtil.extractUserUuid(AUTH_HEADER)).willReturn(USER_UUID.toString());
+        given(investCoreAccountApi.openNewInvestAccount(any())).willReturn(coreSuccessResponse());
+
+        // when
+        CreateInvestAccountResponse response = investAccountService.openNewInvestAccount(request, AUTH_HEADER);
+
+        // then
+        assertThat(response.investAccountUuid()).isEqualTo(ACCOUNT_UUID);
+        assertThat(response.accountNoDisplay()).isEqualTo("123-***-***456");
+        assertThat(response.accountStatus()).isEqualTo("ACTIVE");
+        assertThat(response.investConnectedStatus()).isEqualTo("CONNECTED");
+        assertThat(response.openedAt()).isEqualTo(OPENED_AT);
+    }
+
+    @Test
+    @DisplayName("비밀번호 불일치 시 PASSWORD_MISMATCH 예외")
+    void openNewInvestAccount_passwordMismatch() {
+        // given
+        CreateInvestAccountRequest request = new CreateInvestAccountRequest(
+                "010-1234-5678",
+                "홍길동",
+                "pass1234!",
+                "wrong1234!",
+                "hong@example.com",
+                List.of("INVEST_BASIC")
+        );
+
+        // when / then
+        assertThatThrownBy(() -> investAccountService.openNewInvestAccount(request, AUTH_HEADER))
+                .isInstanceOf(BusinessException.class)
+                .satisfies(ex -> assertThat(((BusinessException) ex).getErrorCode())
+                        .isEqualTo(InvestAccountErrorCode.PASSWORD_MISMATCH));
+
+        verify(jwtUtil, never()).extractUserUuid(any());
+        verify(investCoreAccountApi, never()).openNewInvestAccount(any());
+    }
+
+    @Test
+    @DisplayName("필수 약관 미동의 시 REQUIRED_TERMS_NOT_AGREED 예외")
+    void openNewInvestAccount_requiredTermsNotAgreed() {
+        // given
+        CreateInvestAccountRequest request = new CreateInvestAccountRequest(
+                "010-1234-5678",
+                "홍길동",
+                "pass1234!",
+                "pass1234!",
+                "hong@example.com",
+                List.of("INVEST_AUTO")
+        );
+
+        // when / then
+        assertThatThrownBy(() -> investAccountService.openNewInvestAccount(request, AUTH_HEADER))
+                .isInstanceOf(BusinessException.class)
+                .satisfies(ex -> assertThat(((BusinessException) ex).getErrorCode())
+                        .isEqualTo(InvestAccountErrorCode.REQUIRED_TERMS_NOT_AGREED));
+
+        verify(jwtUtil, never()).extractUserUuid(any());
+        verify(investCoreAccountApi, never()).openNewInvestAccount(any());
+    }
+
+    @Test
+    @DisplayName("Core 서버 5xx FeignException 발생 시 BAD_GATEWAY 예외")
+    void openNewInvestAccount_feignException_badGateway() {
+        // given
+        CreateInvestAccountRequest request = validRequest();
+        given(jwtUtil.extractUserUuid(AUTH_HEADER)).willReturn(USER_UUID.toString());
+
+        Request dummyRequest = Request.create(
+                Request.HttpMethod.POST,
+                "http://core/internal/invest/accounts/new",
+                Collections.emptyMap(),
+                null,
+                new RequestTemplate()
+        );
+        FeignException feignException = new FeignException.ServiceUnavailable(
+                "Core server unavailable", dummyRequest, null, null
+        );
+        given(investCoreAccountApi.openNewInvestAccount(any())).willThrow(feignException);
+
+        // when / then
+        assertThatThrownBy(() -> investAccountService.openNewInvestAccount(request, AUTH_HEADER))
+                .isInstanceOf(BusinessException.class)
+                .satisfies(ex -> assertThat(((BusinessException) ex).getErrorCode())
+                        .isEqualTo(CommonErrorCode.BAD_GATEWAY));
+
+        verify(jwtUtil).extractUserUuid(AUTH_HEADER);
+    }
+
+    // -------------------------------------------------------------------------
+    // linkAccount
+    // -------------------------------------------------------------------------
+
     @Test
     @DisplayName("정상 연결 성공")
     void linkAccount_success() {
-    @DisplayName("정상 요청 → Core 응답 매핑 성공")
-    void openNewInvestAccount_success() {
         // given
         UUID userUuid = UUID.randomUUID();
         UUID investAccountUuid = UUID.randomUUID();
@@ -111,20 +206,11 @@ class InvestAccountServiceTest {
 
         given(commonMappingApi.getMappingStatus(userUuid)).willReturn(mappingResponse);
         given(accountSummaryRepository.findById(investAccountUuid)).willReturn(Optional.of(accountSummary));
-        CreateInvestAccountRequest request = validRequest();
-        given(jwtUtil.extractUserUuid(AUTH_HEADER)).willReturn(USER_UUID);
-        given(investCoreAccountApi.openNewInvestAccount(any())).willReturn(coreSuccessResponse());
 
         // when
-        CreateInvestAccountResponse response = investAccountService.openNewInvestAccount(request, AUTH_HEADER);
         LinkAccountResponse response = investAccountService.linkAccount(userUuid, request);
 
         // then
-        assertThat(response.investAccountUuid()).isEqualTo(ACCOUNT_UUID);
-        assertThat(response.accountNoDisplay()).isEqualTo("123-***-***456");
-        assertThat(response.accountStatus()).isEqualTo("ACTIVE");
-        assertThat(response.investConnectedStatus()).isEqualTo("CONNECTED");
-        assertThat(response.openedAt()).isEqualTo(OPENED_AT);
         assertThat(response.investAccountUuid()).isEqualTo(investAccountUuid);
         assertThat(response.accountNoDisplay()).isEqualTo("123-456-789");
         assertThat(response.investConnectedStatus()).isTrue();
@@ -161,8 +247,6 @@ class InvestAccountServiceTest {
 
         LinkAccountRequest request = new LinkAccountRequest(investAccountUuid);
 
-        verify(jwtUtil).extractUserUuid(AUTH_HEADER);
-        verify(investCoreAccountApi).openNewInvestAccount(request);
         MappingStatusResponse mappingStatus = new MappingStatusResponse(new MappingStatusResponse.InvestStatus(false));
         ApiResponse<MappingStatusResponse> mappingResponse = ApiResponse.of(SuccessStatus.OK, mappingStatus);
 
@@ -203,12 +287,37 @@ class InvestAccountServiceTest {
     }
 
     @Test
+    @DisplayName("계좌 상태 비정상인 경우 INVALID_ACCOUNT_STATUS 예외 발생")
+    void linkAccount_invalidAccountStatus() {
+        // given
+        UUID userUuid = UUID.randomUUID();
+        UUID investAccountUuid = UUID.randomUUID();
+
+        LinkAccountRequest request = new LinkAccountRequest(investAccountUuid);
+
+        MappingStatusResponse mappingStatus = new MappingStatusResponse(new MappingStatusResponse.InvestStatus(false));
+        ApiResponse<MappingStatusResponse> mappingResponse = ApiResponse.of(SuccessStatus.OK, mappingStatus);
+
+        InvestChnAccountSummary accountSummary = mock(InvestChnAccountSummary.class);
+        given(accountSummary.getUserUuid()).willReturn(userUuid);
+        given(accountSummary.getAccountStatus()).willReturn(AccountStatus.INACTIVE);
+
+        given(commonMappingApi.getMappingStatus(userUuid)).willReturn(mappingResponse);
+        given(accountSummaryRepository.findById(investAccountUuid)).willReturn(Optional.of(accountSummary));
+
+        // when & then
+        assertThatThrownBy(() -> investAccountService.linkAccount(userUuid, request))
+                .isInstanceOf(BusinessException.class)
+                .satisfies(ex -> assertThat(((BusinessException) ex).getErrorCode())
+                        .isEqualTo(InvestAccountErrorCode.INVALID_ACCOUNT_STATUS));
+    }
+
+    @Test
     @DisplayName("getMappingStatus Feign 오류 시 BAD_GATEWAY 예외 발생")
     void linkAccount_getMappingStatus_feignException() {
         // given
         UUID userUuid = UUID.randomUUID();
-        UUID investAccountUuid = UUID.randomUUID();
-        LinkAccountRequest request = new LinkAccountRequest(investAccountUuid);
+        LinkAccountRequest request = new LinkAccountRequest(UUID.randomUUID());
 
         FeignException getStatusException = mock(FeignException.class);
         given(commonMappingApi.getMappingStatus(userUuid)).willThrow(getStatusException);
@@ -250,77 +359,25 @@ class InvestAccountServiceTest {
     }
 
     @Test
-    @DisplayName("계좌 상태 비정상인 경우 INVALID_ACCOUNT_STATUS 예외 발생")
-    void linkAccount_invalidAccountStatus() {
-        // given
-        UUID userUuid = UUID.randomUUID();
-        UUID investAccountUuid = UUID.randomUUID();
-
-        LinkAccountRequest request = new LinkAccountRequest(investAccountUuid);
-
-        MappingStatusResponse mappingStatus = new MappingStatusResponse(new MappingStatusResponse.InvestStatus(false));
-        ApiResponse<MappingStatusResponse> mappingResponse = ApiResponse.of(SuccessStatus.OK, mappingStatus);
-
-        InvestChnAccountSummary accountSummary = mock(InvestChnAccountSummary.class);
-        given(accountSummary.getUserUuid()).willReturn(userUuid);
-        given(accountSummary.getAccountStatus()).willReturn(AccountStatus.INACTIVE);
-
-        given(commonMappingApi.getMappingStatus(userUuid)).willReturn(mappingResponse);
-        given(accountSummaryRepository.findById(investAccountUuid)).willReturn(Optional.of(accountSummary));
-
-        // when & then
-        assertThatThrownBy(() -> investAccountService.linkAccount(userUuid, request))
-                .isInstanceOf(BusinessException.class)
-                .satisfies(ex -> assertThat(((BusinessException) ex).getErrorCode())
-                        .isEqualTo(InvestAccountErrorCode.INVALID_ACCOUNT_STATUS));
-    }
-
-    @Test
-    @DisplayName("비밀번호 불일치 시 PASSWORD_MISMATCH 예외")
-    void openNewInvestAccount_passwordMismatch() {
     @DisplayName("getMappingStatus 응답이 null인 경우 BAD_GATEWAY 예외 발생")
     void linkAccount_mappingResponseNull_badGateway() {
         // given
-        CreateInvestAccountRequest request = new CreateInvestAccountRequest(
-                "010-1234-5678",
-                "홍길동",
-                "pass1234!",
-                "wrong1234!",
-                "hong@example.com",
-                List.of("INVEST_BASIC")
-        );
         UUID userUuid = UUID.randomUUID();
         LinkAccountRequest request = new LinkAccountRequest(UUID.randomUUID());
 
-        // when / then
-        assertThatThrownBy(() -> investAccountService.openNewInvestAccount(request, AUTH_HEADER))
         given(commonMappingApi.getMappingStatus(userUuid)).willReturn(null);
 
         // when & then
         assertThatThrownBy(() -> investAccountService.linkAccount(userUuid, request))
                 .isInstanceOf(BusinessException.class)
                 .satisfies(ex -> assertThat(((BusinessException) ex).getErrorCode())
-                        .isEqualTo(InvestAccountErrorCode.PASSWORD_MISMATCH));
-
-        verify(jwtUtil, never()).extractUserUuid(any());
-        verify(investCoreAccountApi, never()).openNewInvestAccount(any());
                         .isEqualTo(CommonErrorCode.BAD_GATEWAY));
     }
 
     @Test
-    @DisplayName("필수 약관 미동의 시 REQUIRED_TERMS_NOT_AGREED 예외")
-    void openNewInvestAccount_requiredTermsNotAgreed() {
     @DisplayName("getMappingStatus 응답의 data가 null인 경우 BAD_GATEWAY 예외 발생")
     void linkAccount_mappingResponseDataNull_badGateway() {
         // given
-        CreateInvestAccountRequest request = new CreateInvestAccountRequest(
-                "010-1234-5678",
-                "홍길동",
-                "pass1234!",
-                "pass1234!",
-                "hong@example.com",
-                List.of("INVEST_AUTO")
-        );
         UUID userUuid = UUID.randomUUID();
         LinkAccountRequest request = new LinkAccountRequest(UUID.randomUUID());
 
@@ -329,50 +386,25 @@ class InvestAccountServiceTest {
 
         // when & then
         assertThatThrownBy(() -> investAccountService.linkAccount(userUuid, request))
-        // when / then
-        assertThatThrownBy(() -> investAccountService.openNewInvestAccount(request, AUTH_HEADER))
                 .isInstanceOf(BusinessException.class)
                 .satisfies(ex -> assertThat(((BusinessException) ex).getErrorCode())
                         .isEqualTo(CommonErrorCode.BAD_GATEWAY));
-                        .isEqualTo(InvestAccountErrorCode.REQUIRED_TERMS_NOT_AGREED));
-
-        verify(jwtUtil, never()).extractUserUuid(any());
-        verify(investCoreAccountApi, never()).openNewInvestAccount(any());
     }
 
     @Test
-    @DisplayName("Core 서버 5xx FeignException 발생 시 BAD_GATEWAY 예외")
-    void openNewInvestAccount_feignException_badGateway() {
     @DisplayName("getMappingStatus 응답의 data.invest()가 null인 경우 BAD_GATEWAY 예외 발생")
     void linkAccount_mappingResponseInvestNull_badGateway() {
         // given
         UUID userUuid = UUID.randomUUID();
         LinkAccountRequest request = new LinkAccountRequest(UUID.randomUUID());
-        CreateInvestAccountRequest request = validRequest();
-        given(jwtUtil.extractUserUuid(AUTH_HEADER)).willReturn(USER_UUID);
 
         ApiResponse<MappingStatusResponse> mappingResponse = ApiResponse.of(SuccessStatus.OK, new MappingStatusResponse(null));
         given(commonMappingApi.getMappingStatus(userUuid)).willReturn(mappingResponse);
-        Request dummyRequest = Request.create(
-                Request.HttpMethod.POST,
-                "http://core/internal/invest/accounts/new",
-                Collections.emptyMap(),
-                null,
-                new RequestTemplate()
-        );
-        FeignException feignException = new FeignException.ServiceUnavailable(
-                "Core server unavailable", dummyRequest, null, null
-        );
-        given(investCoreAccountApi.openNewInvestAccount(any())).willThrow(feignException);
 
         // when & then
         assertThatThrownBy(() -> investAccountService.linkAccount(userUuid, request))
-        // when / then
-        assertThatThrownBy(() -> investAccountService.openNewInvestAccount(request, AUTH_HEADER))
                 .isInstanceOf(BusinessException.class)
                 .satisfies(ex -> assertThat(((BusinessException) ex).getErrorCode())
                         .isEqualTo(CommonErrorCode.BAD_GATEWAY));
-
-        verify(jwtUtil).extractUserUuid(AUTH_HEADER);
     }
 }

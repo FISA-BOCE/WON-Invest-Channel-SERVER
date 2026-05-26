@@ -34,7 +34,9 @@ public class InvestAccountApi {
     ) {
         CreateInvestAccountResponse response =
                 investAccountService.openNewInvestAccount(request, authorizationHeader);
-        return ApiResponse.ofWithCustomMessage(SuccessStatus.CREATED, "증권계좌 개설이 완료되었습니다.", response);
+        return ResponseEntity
+                .status(SuccessStatus.ACCOUNT_CREATED.getHttpStatus())
+                .body(ApiResponse.of(SuccessStatus.ACCOUNT_CREATED, response));
     }
 
     @Operation(summary = "증권계좌 연결", description = "증권계좌를 연결하는 API입니다.")

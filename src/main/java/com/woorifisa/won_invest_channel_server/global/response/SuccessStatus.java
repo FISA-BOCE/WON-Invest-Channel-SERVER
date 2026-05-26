@@ -10,6 +10,7 @@ public enum SuccessStatus {
     CREATED(HttpStatus.CREATED, "COM_201_001", "CREATED"),
     NO_CONTENT(HttpStatus.NO_CONTENT, "COM_204_001", "NO_CONTENT"),
 
+    ACCOUNT_CREATED(HttpStatus.CREATED, "INVEST_201_001", "증권계좌 개설이 완료되었습니다."),
     ACCOUNT_LINKED(HttpStatus.OK, "INVEST_200_001", "투자 계좌 연결이 완료되었습니다.");
 
     private final HttpStatus httpStatus;
