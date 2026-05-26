@@ -4,6 +4,7 @@ import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotEmpty;
 import jakarta.validation.constraints.Pattern;
+import jakarta.validation.constraints.Size;
 
 import java.util.List;
 
@@ -16,9 +17,11 @@ public record CreateInvestAccountRequest(
         String customerName,
 
         @NotBlank
+        @Size(min = 8, max = 16, message = "비밀번호는 8자 이상 16자 이하여야 합니다.")
         String accountPassword,
 
         @NotBlank
+        @Size(min = 8, max = 16, message = "비밀번호는 8자 이상 16자 이하여야 합니다.")
         String accountPasswordConfirm,
 
         @NotBlank
@@ -26,5 +29,5 @@ public record CreateInvestAccountRequest(
         String email,
 
         @NotEmpty
-        List<String> agreedTerms
+        List<@NotBlank String> agreedTerms
 ) {}

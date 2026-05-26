@@ -12,7 +12,6 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
-import java.util.UUID;
 
 @Service
 @RequiredArgsConstructor
@@ -28,13 +27,13 @@ public class InvestAccountService {
         validatePasswordMatch(request.accountPassword(), request.accountPasswordConfirm());
         validateRequiredTerms(request.agreedTerms());
 
-        UUID userUuid = jwtUtil.extractUserUuid(authorizationHeader);
+        jwtUtil.extractUserUuid(authorizationHeader);
 
         InvestCoreAccountApi.CoreApiResponse coreResponse;
         try {
             coreResponse = investCoreAccountApi.openNewInvestAccount(request);
         } catch (FeignException e) {
-            throw new BusinessException(CommonErrorCode.BAD_GATEWAY);
+            throw mapFeignException(e);
         }
 
         if (coreResponse == null || coreResponse.data() == null) {
@@ -54,6 +53,15 @@ public class InvestAccountService {
         if (agreedTerms == null || !agreedTerms.contains("INVEST_BASIC")) {
             throw new BusinessException(InvestAccountErrorCode.REQUIRED_TERMS_NOT_AGREED);
         }
+    }
+
+    private BusinessException mapFeignException(FeignException e) {
+        int status = e.status();
+        if (status == 400) return new BusinessException(InvestAccountErrorCode.INVALID_INPUT);
+        if (status == 401) return new BusinessException(CommonErrorCode.UNAUTHORIZED);
+        if (status == 403) return new BusinessException(CommonErrorCode.FORBIDDEN);
+        if (status >= 400 && status < 500) return new BusinessException(CommonErrorCode.INVALID_INPUT_VALUE);
+        return new BusinessException(CommonErrorCode.BAD_GATEWAY);
     }
 
     private CreateInvestAccountResponse toChannelResponse(InvestCoreAccountApi.CoreAccountData coreData) {

@@ -15,7 +15,7 @@ public record ApiResponse<T>(
                 .body(new ApiResponse<>(successStatus.getStatusCode(), successStatus.getMessage(), data));
     }
 
-    public static <T> ResponseEntity<ApiResponse<T>> of(SuccessStatus successStatus, String message, T data) {
+    public static <T> ResponseEntity<ApiResponse<T>> ofWithCustomMessage(SuccessStatus successStatus, String message, T data) {
         return ResponseEntity
                 .status(successStatus.getHttpStatus())
                 .body(new ApiResponse<>(successStatus.getStatusCode(), message, data));

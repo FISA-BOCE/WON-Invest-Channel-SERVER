@@ -5,7 +5,7 @@ import org.springframework.cloud.openfeign.FeignClient;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 
-import java.time.Instant;
+import java.time.LocalDateTime;
 import java.util.UUID;
 
 @FeignClient(name = "invest-core", url = "${feign.invest-core.url}")
@@ -16,7 +16,7 @@ public interface InvestCoreAccountApi {
             String accountNoDisplay,
             String accountStatus,
             String investConnectedStatus,
-            Instant openedAt
+            LocalDateTime openedAt
     ) {}
 
     record CoreApiResponse(

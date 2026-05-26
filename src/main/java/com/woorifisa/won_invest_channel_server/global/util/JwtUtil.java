@@ -36,7 +36,7 @@ public class JwtUtil {
         } catch (BusinessException e) {
             throw e;
         } catch (Exception e) {
-            log.warn("JWT 파싱 실패: {}", e.getMessage());
+            log.warn("JWT 파싱 실패", e);
             throw new BusinessException(CommonErrorCode.UNAUTHORIZED);
         }
     }

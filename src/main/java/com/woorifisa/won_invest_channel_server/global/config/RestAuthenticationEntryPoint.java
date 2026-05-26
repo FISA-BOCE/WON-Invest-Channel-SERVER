@@ -25,7 +25,8 @@ public class RestAuthenticationEntryPoint implements AuthenticationEntryPoint {
         ErrorResponse errorResponse = new ErrorResponse(
                 HttpServletResponse.SC_UNAUTHORIZED,
                 CommonErrorCode.UNAUTHORIZED.getCode(),
-                CommonErrorCode.UNAUTHORIZED.getMessage()
+                CommonErrorCode.UNAUTHORIZED.getMessage(),
+                null
         );
         objectMapper.writeValue(response.getOutputStream(), errorResponse);
     }

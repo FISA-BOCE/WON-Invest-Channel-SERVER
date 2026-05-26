@@ -18,7 +18,7 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.test.context.ActiveProfiles;
 
-import java.time.Instant;
+import java.time.LocalDateTime;
 import java.util.Collections;
 import java.util.List;
 import java.util.UUID;
@@ -43,6 +43,7 @@ class InvestAccountServiceTest {
     private static final String AUTH_HEADER = "Bearer test.jwt.token";
     private static final UUID USER_UUID = UUID.fromString("11111111-1111-1111-1111-111111111111");
     private static final UUID ACCOUNT_UUID = UUID.fromString("22222222-2222-2222-2222-222222222222");
+    private static final LocalDateTime OPENED_AT = LocalDateTime.of(2026, 5, 25, 10, 0, 0);
 
     private CreateInvestAccountRequest validRequest() {
         return new CreateInvestAccountRequest(
@@ -61,7 +62,7 @@ class InvestAccountServiceTest {
                 "123-***-***456",
                 "ACTIVE",
                 "CONNECTED",
-                Instant.parse("2026-05-25T10:00:00Z")
+                OPENED_AT
         );
         return new InvestCoreAccountApi.CoreApiResponse(201, "증권계좌 개설이 완료되었습니다.", data);
     }
@@ -82,8 +83,9 @@ class InvestAccountServiceTest {
         assertThat(response.accountNoDisplay()).isEqualTo("123-***-***456");
         assertThat(response.accountStatus()).isEqualTo("ACTIVE");
         assertThat(response.investConnectedStatus()).isEqualTo("CONNECTED");
-        assertThat(response.openedAt()).isEqualTo(Instant.parse("2026-05-25T10:00:00Z"));
+        assertThat(response.openedAt()).isEqualTo(OPENED_AT);
 
+        verify(jwtUtil).extractUserUuid(AUTH_HEADER);
         verify(investCoreAccountApi).openNewInvestAccount(request);
     }
 
@@ -134,7 +136,7 @@ class InvestAccountServiceTest {
     }
 
     @Test
-    @DisplayName("Core 서버 FeignException 발생 시 BAD_GATEWAY 예외")
+    @DisplayName("Core 서버 5xx FeignException 발생 시 BAD_GATEWAY 예외")
     void openNewInvestAccount_feignException_badGateway() {
         // given
         CreateInvestAccountRequest request = validRequest();
@@ -157,5 +159,7 @@ class InvestAccountServiceTest {
                 .isInstanceOf(BusinessException.class)
                 .satisfies(ex -> assertThat(((BusinessException) ex).getErrorCode())
                         .isEqualTo(CommonErrorCode.BAD_GATEWAY));
+
+        verify(jwtUtil).extractUserUuid(AUTH_HEADER);
     }
 }

@@ -1,5 +1,3 @@
 spring:
   application:
     name: won-invest-channel-server
-  profiles:
-    active: local

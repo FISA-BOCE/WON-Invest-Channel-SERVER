@@ -28,6 +28,6 @@ public class InvestAccountApi {
     ) {
         CreateInvestAccountResponse response =
                 investAccountService.openNewInvestAccount(request, authorizationHeader);
-        return ApiResponse.of(SuccessStatus.CREATED, "증권계좌 개설이 완료되었습니다.", response);
+        return ApiResponse.ofWithCustomMessage(SuccessStatus.CREATED, "증권계좌 개설이 완료되었습니다.", response);
     }
 }
