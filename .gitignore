@@ -35,3 +35,10 @@ out/
 
 ### VS Code ###
 .vscode/
+
+### Claude Code ###
+.claude/
+
+### Local config ###
+src/main/resources/application-local.yml
+src/test/resources/application-test.yml
