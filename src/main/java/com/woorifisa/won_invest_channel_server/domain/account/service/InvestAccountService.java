@@ -57,8 +57,10 @@ public class InvestAccountService {
         }
 
         try {
-            commonMappingApi.linkInvestMapping(userUuid,
-                    new LinkInvestMappingRequest(accountSummary.getInvestUserUuid()));
+            commonMappingApi.linkInvestMapping(
+                    userUuid,
+                    new LinkInvestMappingRequest(accountSummary.getInvestUserUuid())
+            );
         } catch (FeignException e) {
             throw new BusinessException(CommonErrorCode.BAD_GATEWAY);
         }

@@ -219,4 +219,54 @@ class InvestAccountServiceTest {
                 .satisfies(ex -> assertThat(((BusinessException) ex).getErrorCode())
                         .isEqualTo(InvestAccountErrorCode.INVALID_ACCOUNT_STATUS));
     }
+
+    @Test
+    @DisplayName("getMappingStatus 응답이 null인 경우 BAD_GATEWAY 예외 발생")
+    void linkAccount_mappingResponseNull_badGateway() {
+        // given
+        UUID userUuid = UUID.randomUUID();
+        LinkAccountRequest request = new LinkAccountRequest(UUID.randomUUID());
+
+        given(commonMappingApi.getMappingStatus(userUuid)).willReturn(null);
+
+        // when & then
+        assertThatThrownBy(() -> investAccountService.linkAccount(userUuid, request))
+                .isInstanceOf(BusinessException.class)
+                .satisfies(ex -> assertThat(((BusinessException) ex).getErrorCode())
+                        .isEqualTo(CommonErrorCode.BAD_GATEWAY));
+    }
+
+    @Test
+    @DisplayName("getMappingStatus 응답의 data가 null인 경우 BAD_GATEWAY 예외 발생")
+    void linkAccount_mappingResponseDataNull_badGateway() {
+        // given
+        UUID userUuid = UUID.randomUUID();
+        LinkAccountRequest request = new LinkAccountRequest(UUID.randomUUID());
+
+        ApiResponse<MappingStatusResponse> mappingResponse = ApiResponse.of(SuccessStatus.OK, (MappingStatusResponse) null);
+        given(commonMappingApi.getMappingStatus(userUuid)).willReturn(mappingResponse);
+
+        // when & then
+        assertThatThrownBy(() -> investAccountService.linkAccount(userUuid, request))
+                .isInstanceOf(BusinessException.class)
+                .satisfies(ex -> assertThat(((BusinessException) ex).getErrorCode())
+                        .isEqualTo(CommonErrorCode.BAD_GATEWAY));
+    }
+
+    @Test
+    @DisplayName("getMappingStatus 응답의 data.invest()가 null인 경우 BAD_GATEWAY 예외 발생")
+    void linkAccount_mappingResponseInvestNull_badGateway() {
+        // given
+        UUID userUuid = UUID.randomUUID();
+        LinkAccountRequest request = new LinkAccountRequest(UUID.randomUUID());
+
+        ApiResponse<MappingStatusResponse> mappingResponse = ApiResponse.of(SuccessStatus.OK, new MappingStatusResponse(null));
+        given(commonMappingApi.getMappingStatus(userUuid)).willReturn(mappingResponse);
+
+        // when & then
+        assertThatThrownBy(() -> investAccountService.linkAccount(userUuid, request))
+                .isInstanceOf(BusinessException.class)
+                .satisfies(ex -> assertThat(((BusinessException) ex).getErrorCode())
+                        .isEqualTo(CommonErrorCode.BAD_GATEWAY));
+    }
 }

@@ -19,7 +19,7 @@ public interface CommonMappingApi {
     ApiResponse<MappingStatusResponse> getMappingStatus(@PathVariable("userUuid") UUID userUuid);
 
     @PatchMapping("/internal/mappings/users/{userUuid}/invest")
-    void linkInvestMapping(
+    ApiResponse<MappingStatusResponse> linkInvestMapping(
             @PathVariable("userUuid") UUID userUuid,
             @RequestBody LinkInvestMappingRequest request
     );
