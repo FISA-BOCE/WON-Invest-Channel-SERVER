@@ -1,43 +1,28 @@
 package com.woorifisa.won_invest_channel_server.global.util;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.woorifisa.won_invest_channel_server.global.exception.code.CommonErrorCode;
-import com.woorifisa.won_invest_channel_server.global.exception.handler.BusinessException;
-import lombok.extern.slf4j.Slf4j;
+import io.jsonwebtoken.Jwts;
+import io.jsonwebtoken.security.Keys;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
-import java.util.Base64;
-import java.util.Map;
-import java.util.UUID;
+import javax.crypto.SecretKey;
+import java.nio.charset.StandardCharsets;
 
-@Slf4j
 @Component
 public class JwtUtil {
 
-    private final ObjectMapper objectMapper = new ObjectMapper();
+    private final SecretKey signingKey;
 
-    public UUID extractUserUuid(String bearerToken) {
-        if (bearerToken == null || !bearerToken.startsWith("Bearer ")) {
-            throw new BusinessException(CommonErrorCode.UNAUTHORIZED);
-        }
-        String token = bearerToken.substring(7);
-        String[] parts = token.split("\\.");
-        if (parts.length != 3) {
-            throw new BusinessException(CommonErrorCode.UNAUTHORIZED);
-        }
-        try {
-            String payload = new String(Base64.getUrlDecoder().decode(parts[1]));
-            Map<?, ?> claims = objectMapper.readValue(payload, Map.class);
-            String userUuidStr = (String) claims.get("user_uuid");
-            if (userUuidStr == null || userUuidStr.isBlank()) {
-                throw new BusinessException(CommonErrorCode.UNAUTHORIZED);
-            }
-            return UUID.fromString(userUuidStr);
-        } catch (BusinessException e) {
-            throw e;
-        } catch (Exception e) {
-            log.warn("JWT 파싱 실패", e);
-            throw new BusinessException(CommonErrorCode.UNAUTHORIZED);
-        }
+    public JwtUtil(@Value("${jwt.secret}") String secret) {
+        this.signingKey = Keys.hmacShaKeyFor(secret.getBytes(StandardCharsets.UTF_8));
+    }
+
+    public String extractUserUuid(String token) {
+        return Jwts.parser()
+            .verifyWith(signingKey)
+            .build()
+            .parseSignedClaims(token)
+            .getPayload()
+            .getSubject();
     }
 }
