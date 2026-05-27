@@ -86,6 +86,7 @@ public class InvestAccountService {
         );
     }
 
+    @Transactional
     public CreateInvestAccountResponse createNewInvestAccount(
             CreateInvestAccountChannelRequest request,
             UUID userUuid
@@ -126,7 +127,27 @@ public class InvestAccountService {
             throw new BusinessException(CommonErrorCode.BAD_GATEWAY);
         }
 
-        return toChannelResponse(coreResponse.data());
+        InvestAccountCoreResponse coreData = coreResponse.data();
+
+        accountSummaryRepository.save(InvestChnAccountSummary.builder()
+                .investAccountUuid(coreData.investAccountUuid())
+                .investUserUuid(coreData.investUserUuid())
+                .userUuid(userUuid)
+                .accountNoDisplay(coreData.accountNoDisplay())
+                .accountStatus(AccountStatus.valueOf(coreData.accountStatus()))
+                .build());
+
+        try {
+            commonMappingApi.linkInvestMapping(
+                    userUuid,
+                    new LinkInvestMappingRequest(coreData.investUserUuid())
+            );
+        } catch (FeignException e) {
+            log.warn("Common server linkInvestMapping Feign error [status={}]", e.status());
+            throw new BusinessException(CommonErrorCode.BAD_GATEWAY);
+        }
+
+        return toChannelResponse(coreData);
     }
 
     private void validatePasswordMatch(String password, String passwordConfirm) {

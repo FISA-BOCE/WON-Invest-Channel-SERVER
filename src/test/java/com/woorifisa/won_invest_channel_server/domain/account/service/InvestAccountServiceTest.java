@@ -1,7 +1,6 @@
 package com.woorifisa.won_invest_channel_server.domain.account.service;
 
 import com.woorifisa.won_invest_channel_server.domain.account.dto.request.CreateInvestAccountChannelRequest;
-import com.woorifisa.won_invest_channel_server.domain.account.dto.request.CreateInvestAccountRequest;
 import com.woorifisa.won_invest_channel_server.domain.account.dto.request.LinkAccountRequest;
 import com.woorifisa.won_invest_channel_server.domain.account.dto.response.CreateInvestAccountResponse;
 import com.woorifisa.won_invest_channel_server.domain.account.dto.response.LinkAccountResponse;
@@ -60,6 +59,7 @@ class InvestAccountServiceTest {
 
     private static final UUID USER_UUID = UUID.fromString("11111111-1111-1111-1111-111111111111");
     private static final UUID ACCOUNT_UUID = UUID.fromString("22222222-2222-2222-2222-222222222222");
+    private static final UUID INVEST_USER_UUID = UUID.fromString("33333333-3333-3333-3333-333333333333");
     private static final LocalDateTime OPENED_AT = LocalDateTime.of(2026, 5, 25, 10, 0, 0);
 
     private CreateInvestAccountChannelRequest validRequest() {
@@ -76,6 +76,7 @@ class InvestAccountServiceTest {
     private ApiResponse<InvestAccountCoreResponse> coreSuccessResponse() {
         InvestAccountCoreResponse data = new InvestAccountCoreResponse(
                 ACCOUNT_UUID,
+                INVEST_USER_UUID,
                 "123-***-***456",
                 "ACTIVE",
                 "CONNECTED",
@@ -104,6 +105,8 @@ class InvestAccountServiceTest {
         assertThat(response.accountStatus()).isEqualTo("ACTIVE");
         assertThat(response.investConnectedStatus()).isEqualTo("CONNECTED");
         assertThat(response.openedAt()).isEqualTo(OPENED_AT);
+        verify(accountSummaryRepository).save(any(InvestChnAccountSummary.class));
+        verify(commonMappingApi).linkInvestMapping(eq(USER_UUID), eq(new LinkInvestMappingRequest(INVEST_USER_UUID)));
     }
 
     @Test
@@ -227,6 +230,23 @@ class InvestAccountServiceTest {
                 .isInstanceOf(BusinessException.class)
                 .satisfies(ex -> assertThat(((BusinessException) ex).getErrorCode())
                         .isEqualTo(CommonErrorCode.BAD_GATEWAY));
+    }
+
+    @Test
+    @DisplayName("계좌 동기화 저장 후 linkInvestMapping Feign 오류 시 BAD_GATEWAY 예외")
+    void createNewInvestAccount_linkInvestMapping_feignException() {
+        // given
+        CreateInvestAccountChannelRequest request = validRequest();
+        given(investCoreAccountApi.createNewInvestAccount(eq(USER_UUID), any())).willReturn(coreSuccessResponse());
+        FeignException feignException = mock(FeignException.class);
+        willThrow(feignException).given(commonMappingApi).linkInvestMapping(eq(USER_UUID), any());
+
+        // when / then
+        assertThatThrownBy(() -> investAccountService.createNewInvestAccount(request, USER_UUID))
+                .isInstanceOf(BusinessException.class)
+                .satisfies(ex -> assertThat(((BusinessException) ex).getErrorCode())
+                        .isEqualTo(CommonErrorCode.BAD_GATEWAY));
+        verify(accountSummaryRepository).save(any(InvestChnAccountSummary.class));
     }
 
     // -------------------------------------------------------------------------

@@ -5,6 +5,7 @@ import java.util.UUID;
 
 public record InvestAccountCoreResponse(
         UUID investAccountUuid,
+        UUID investUserUuid,
         String accountNoDisplay,
         String accountStatus,
         String investConnectedStatus,
