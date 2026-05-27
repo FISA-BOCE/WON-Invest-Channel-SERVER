@@ -4,7 +4,6 @@ import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotEmpty;
 import jakarta.validation.constraints.Pattern;
-import jakarta.validation.constraints.Size;
 
 import java.util.List;
 
@@ -17,11 +16,11 @@ public record CreateInvestAccountRequest(
         String customerName,
 
         @NotBlank
-        @Size(min = 8, max = 16, message = "비밀번호는 8자 이상 16자 이하여야 합니다.")
+        @Pattern(regexp = "^(?=.*[0-9])(?=.*[!@#$%^&*]).{8,16}$", message = "비밀번호는 숫자와 특수문자를 포함한 8~16자여야 합니다.")
         String accountPassword,
 
         @NotBlank
-        @Size(min = 8, max = 16, message = "비밀번호는 8자 이상 16자 이하여야 합니다.")
+        @Pattern(regexp = "^(?=.*[0-9])(?=.*[!@#$%^&*]).{8,16}$", message = "비밀번호는 숫자와 특수문자를 포함한 8~16자여야 합니다.")
         String accountPasswordConfirm,
 
         @NotBlank

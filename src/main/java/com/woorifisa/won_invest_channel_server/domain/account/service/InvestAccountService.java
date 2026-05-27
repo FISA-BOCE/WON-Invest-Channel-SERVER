@@ -7,6 +7,7 @@ import com.woorifisa.won_invest_channel_server.domain.account.dto.response.LinkA
 import com.woorifisa.won_invest_channel_server.domain.account.exception.code.InvestAccountErrorCode;
 import com.woorifisa.won_invest_channel_server.domain.account.external.CommonMappingApi;
 import com.woorifisa.won_invest_channel_server.domain.account.external.InvestCoreAccountApi;
+import com.woorifisa.won_invest_channel_server.domain.account.external.dto.InvestAccountCoreResponse;
 import com.woorifisa.won_invest_channel_server.domain.account.external.dto.LinkInvestMappingRequest;
 import com.woorifisa.won_invest_channel_server.domain.account.external.dto.MappingStatusResponse;
 import com.woorifisa.won_invest_channel_server.domain.account.model.AccountStatus;
@@ -15,16 +16,18 @@ import com.woorifisa.won_invest_channel_server.domain.account.repository.InvestC
 import com.woorifisa.won_invest_channel_server.global.exception.code.CommonErrorCode;
 import com.woorifisa.won_invest_channel_server.global.exception.handler.BusinessException;
 import com.woorifisa.won_invest_channel_server.global.response.ApiResponse;
-import com.woorifisa.won_invest_channel_server.global.util.JwtUtil;
 import feign.FeignException;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Objects;
 import java.util.UUID;
 
+@Slf4j
 @Service
 @RequiredArgsConstructor
 @Transactional(readOnly = true)
@@ -33,7 +36,6 @@ public class InvestAccountService {
     private final CommonMappingApi commonMappingApi;
     private final InvestCoreAccountApi investCoreAccountApi;
     private final InvestChnAccountSummaryRepository accountSummaryRepository;
-    private final JwtUtil jwtUtil;
 
     @Transactional
     public LinkAccountResponse linkAccount(UUID userUuid, LinkAccountRequest request) {
@@ -83,19 +85,28 @@ public class InvestAccountService {
         );
     }
 
-    public CreateInvestAccountResponse openNewInvestAccount(
+    public CreateInvestAccountResponse createNewInvestAccount(
             CreateInvestAccountRequest request,
-            String authorizationHeader
+            UUID userUuid
     ) {
         validatePasswordMatch(request.accountPassword(), request.accountPasswordConfirm());
         validateRequiredTerms(request.agreedTerms());
-        jwtUtil.extractUserUuid(authorizationHeader);
 
-        InvestCoreAccountApi.CoreApiResponse coreResponse;
+        ApiResponse<InvestAccountCoreResponse> coreResponse;
         try {
-            coreResponse = investCoreAccountApi.openNewInvestAccount(request);
+            coreResponse = investCoreAccountApi.createNewInvestAccount(userUuid, request);
+        } catch (FeignException.BadRequest e) {
+            log.warn("Core server bad request [status={}]: {}", e.status(), e.contentUTF8());
+            throw new BusinessException(InvestAccountErrorCode.INVALID_INPUT);
+        } catch (FeignException.Unauthorized e) {
+            log.warn("Core server unauthorized [status={}]: {}", e.status(), e.contentUTF8());
+            throw new BusinessException(CommonErrorCode.UNAUTHORIZED);
+        } catch (FeignException.Forbidden e) {
+            log.warn("Core server forbidden [status={}]: {}", e.status(), e.contentUTF8());
+            throw new BusinessException(CommonErrorCode.FORBIDDEN);
         } catch (FeignException e) {
-            throw mapFeignException(e);
+            log.warn("Core server Feign error [status={}]: {}", e.status(), e.contentUTF8());
+            throw new BusinessException(CommonErrorCode.BAD_GATEWAY);
         }
 
         if (coreResponse == null || coreResponse.data() == null) {
@@ -106,7 +117,7 @@ public class InvestAccountService {
     }
 
     private void validatePasswordMatch(String password, String passwordConfirm) {
-        if (!java.util.Objects.equals(password, passwordConfirm)) {
+        if (!Objects.equals(password, passwordConfirm)) {
             throw new BusinessException(InvestAccountErrorCode.PASSWORD_MISMATCH);
         }
     }
@@ -117,16 +128,7 @@ public class InvestAccountService {
         }
     }
 
-    private BusinessException mapFeignException(FeignException e) {
-        int status = e.status();
-        if (status == 400) return new BusinessException(InvestAccountErrorCode.INVALID_INPUT);
-        if (status == 401) return new BusinessException(CommonErrorCode.UNAUTHORIZED);
-        if (status == 403) return new BusinessException(CommonErrorCode.FORBIDDEN);
-        if (status >= 400 && status < 500) return new BusinessException(CommonErrorCode.INVALID_INPUT_VALUE);
-        return new BusinessException(CommonErrorCode.BAD_GATEWAY);
-    }
-
-    private CreateInvestAccountResponse toChannelResponse(InvestCoreAccountApi.CoreAccountData coreData) {
+    private CreateInvestAccountResponse toChannelResponse(InvestAccountCoreResponse coreData) {
         return new CreateInvestAccountResponse(
                 coreData.investAccountUuid(),
                 coreData.accountNoDisplay(),

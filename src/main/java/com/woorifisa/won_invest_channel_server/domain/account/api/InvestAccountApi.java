@@ -16,7 +16,10 @@ import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
-import org.springframework.web.bind.annotation.*;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RestController;
 
 @RestController
 @RequestMapping("/api/invest/accounts")
@@ -29,11 +32,14 @@ public class InvestAccountApi {
     @Operation(summary = "신규 증권계좌 개설", description = "신규 증권계좌를 개설하는 API입니다.")
     @PostMapping("/new")
     public ResponseEntity<ApiResponse<CreateInvestAccountResponse>> createInvestAccount(
-            @Valid @RequestBody CreateInvestAccountRequest request,
-            @RequestHeader("Authorization") String authorizationHeader
+            @AuthenticationPrincipal AuthenticatedUser authenticatedUser,
+            @Valid @RequestBody CreateInvestAccountRequest request
     ) {
+        if (authenticatedUser == null) {
+            throw new BusinessException(CommonErrorCode.UNAUTHORIZED);
+        }
         CreateInvestAccountResponse response =
-                investAccountService.openNewInvestAccount(request, authorizationHeader);
+                investAccountService.createNewInvestAccount(request, authenticatedUser.userUuid());
         return ResponseEntity
                 .status(SuccessStatus.ACCOUNT_CREATED.getHttpStatus())
                 .body(ApiResponse.of(SuccessStatus.ACCOUNT_CREATED, response));
