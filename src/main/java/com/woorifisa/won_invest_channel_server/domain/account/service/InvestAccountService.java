@@ -96,16 +96,16 @@ public class InvestAccountService {
         try {
             coreResponse = investCoreAccountApi.createNewInvestAccount(userUuid, request);
         } catch (FeignException.BadRequest e) {
-            log.warn("Core server bad request [status={}]: {}", e.status(), e.contentUTF8());
+            log.warn("Core server bad request [status={}]", e.status());
             throw new BusinessException(InvestAccountErrorCode.INVALID_INPUT);
         } catch (FeignException.Unauthorized e) {
-            log.warn("Core server unauthorized [status={}]: {}", e.status(), e.contentUTF8());
+            log.warn("Core server unauthorized [status={}]", e.status());
             throw new BusinessException(CommonErrorCode.UNAUTHORIZED);
         } catch (FeignException.Forbidden e) {
-            log.warn("Core server forbidden [status={}]: {}", e.status(), e.contentUTF8());
+            log.warn("Core server forbidden [status={}]", e.status());
             throw new BusinessException(CommonErrorCode.FORBIDDEN);
         } catch (FeignException e) {
-            log.warn("Core server Feign error [status={}]: {}", e.status(), e.contentUTF8());
+            log.warn("Core server Feign error [status={}]", e.status());
             throw new BusinessException(CommonErrorCode.BAD_GATEWAY);
         }
 
