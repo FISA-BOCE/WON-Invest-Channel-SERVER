@@ -1,6 +1,6 @@
 package com.woorifisa.won_invest_channel_server.domain.account.api;
 
-import com.woorifisa.won_invest_channel_server.domain.account.dto.request.CreateInvestAccountRequest;
+import com.woorifisa.won_invest_channel_server.domain.account.dto.request.CreateInvestAccountChannelRequest;
 import com.woorifisa.won_invest_channel_server.domain.account.dto.response.CreateInvestAccountResponse;
 import com.woorifisa.won_invest_channel_server.domain.account.dto.request.LinkAccountRequest;
 import com.woorifisa.won_invest_channel_server.domain.account.dto.response.LinkAccountResponse;
@@ -33,7 +33,7 @@ public class InvestAccountApi {
     @PostMapping("/new")
     public ResponseEntity<ApiResponse<CreateInvestAccountResponse>> createInvestAccount(
             @AuthenticationPrincipal AuthenticatedUser authenticatedUser,
-            @Valid @RequestBody CreateInvestAccountRequest request
+            @Valid @RequestBody CreateInvestAccountChannelRequest request
     ) {
         if (authenticatedUser == null) {
             throw new BusinessException(CommonErrorCode.UNAUTHORIZED);

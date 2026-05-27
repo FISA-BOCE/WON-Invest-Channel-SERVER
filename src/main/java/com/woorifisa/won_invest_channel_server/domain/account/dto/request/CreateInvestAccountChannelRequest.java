@@ -7,7 +7,7 @@ import jakarta.validation.constraints.Pattern;
 
 import java.util.List;
 
-public record CreateInvestAccountRequest(
+public record CreateInvestAccountChannelRequest(
         @NotBlank
         @Pattern(regexp = "^\\d{3}-\\d{4}-\\d{4}$", message = "전화번호 형식이 올바르지 않습니다.")
         String phoneNumber,
@@ -18,6 +18,10 @@ public record CreateInvestAccountRequest(
         @NotBlank
         @Pattern(regexp = "^(?=.*[0-9])(?=.*[!@#$%^&*]).{8,16}$", message = "비밀번호는 숫자와 특수문자를 포함한 8~16자여야 합니다.")
         String accountPassword,
+
+        @NotBlank
+        @Pattern(regexp = "^(?=.*[0-9])(?=.*[!@#$%^&*]).{8,16}$", message = "비밀번호는 숫자와 특수문자를 포함한 8~16자여야 합니다.")
+        String accountPasswordConfirm,
 
         @NotBlank
         @Email(message = "이메일 형식이 올바르지 않습니다.")

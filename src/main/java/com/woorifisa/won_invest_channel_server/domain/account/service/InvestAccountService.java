@@ -1,5 +1,6 @@
 package com.woorifisa.won_invest_channel_server.domain.account.service;
 
+import com.woorifisa.won_invest_channel_server.domain.account.dto.request.CreateInvestAccountChannelRequest;
 import com.woorifisa.won_invest_channel_server.domain.account.dto.request.CreateInvestAccountRequest;
 import com.woorifisa.won_invest_channel_server.domain.account.dto.request.LinkAccountRequest;
 import com.woorifisa.won_invest_channel_server.domain.account.dto.response.CreateInvestAccountResponse;
@@ -86,17 +87,29 @@ public class InvestAccountService {
     }
 
     public CreateInvestAccountResponse createNewInvestAccount(
-            CreateInvestAccountRequest request,
+            CreateInvestAccountChannelRequest request,
             UUID userUuid
     ) {
         validatePasswordMatch(request.accountPassword(), request.accountPasswordConfirm());
         validateRequiredTerms(request.agreedTerms());
 
+        CreateInvestAccountRequest coreRequest = new CreateInvestAccountRequest(
+                request.phoneNumber(),
+                request.customerName(),
+                request.accountPassword(),
+                request.email(),
+                request.agreedTerms()
+        );
+
         ApiResponse<InvestAccountCoreResponse> coreResponse;
         try {
-            coreResponse = investCoreAccountApi.createNewInvestAccount(userUuid, request);
+            coreResponse = investCoreAccountApi.createNewInvestAccount(userUuid, coreRequest);
         } catch (FeignException.BadRequest e) {
             log.warn("Core server bad request [status={}]", e.status());
+            String body = e.contentUTF8();
+            if (body != null && body.contains("INVEST_400_003")) {
+                throw new BusinessException(InvestAccountErrorCode.ACCOUNT_ALREADY_CONNECTED);
+            }
             throw new BusinessException(InvestAccountErrorCode.INVALID_INPUT);
         } catch (FeignException.Unauthorized e) {
             log.warn("Core server unauthorized [status={}]", e.status());

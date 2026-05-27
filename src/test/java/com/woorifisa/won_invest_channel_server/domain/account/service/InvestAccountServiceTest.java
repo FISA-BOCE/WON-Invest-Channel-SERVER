@@ -1,5 +1,6 @@
 package com.woorifisa.won_invest_channel_server.domain.account.service;
 
+import com.woorifisa.won_invest_channel_server.domain.account.dto.request.CreateInvestAccountChannelRequest;
 import com.woorifisa.won_invest_channel_server.domain.account.dto.request.CreateInvestAccountRequest;
 import com.woorifisa.won_invest_channel_server.domain.account.dto.request.LinkAccountRequest;
 import com.woorifisa.won_invest_channel_server.domain.account.dto.response.CreateInvestAccountResponse;
@@ -20,6 +21,8 @@ import com.woorifisa.won_invest_channel_server.global.response.SuccessStatus;
 import feign.FeignException;
 import feign.Request;
 import feign.RequestTemplate;
+
+import java.nio.charset.StandardCharsets;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -59,8 +62,8 @@ class InvestAccountServiceTest {
     private static final UUID ACCOUNT_UUID = UUID.fromString("22222222-2222-2222-2222-222222222222");
     private static final LocalDateTime OPENED_AT = LocalDateTime.of(2026, 5, 25, 10, 0, 0);
 
-    private CreateInvestAccountRequest validRequest() {
-        return new CreateInvestAccountRequest(
+    private CreateInvestAccountChannelRequest validRequest() {
+        return new CreateInvestAccountChannelRequest(
                 "010-1234-5678",
                 "홍길동",
                 "pass1234!",
@@ -89,7 +92,7 @@ class InvestAccountServiceTest {
     @DisplayName("정상 요청 → Core 응답 매핑 성공")
     void createNewInvestAccount_success() {
         // given
-        CreateInvestAccountRequest request = validRequest();
+        CreateInvestAccountChannelRequest request = validRequest();
         given(investCoreAccountApi.createNewInvestAccount(eq(USER_UUID), any())).willReturn(coreSuccessResponse());
 
         // when
@@ -107,7 +110,7 @@ class InvestAccountServiceTest {
     @DisplayName("비밀번호 불일치 시 PASSWORD_MISMATCH 예외")
     void createNewInvestAccount_passwordMismatch() {
         // given
-        CreateInvestAccountRequest request = new CreateInvestAccountRequest(
+        CreateInvestAccountChannelRequest request = new CreateInvestAccountChannelRequest(
                 "010-1234-5678",
                 "홍길동",
                 "pass1234!",
@@ -129,7 +132,7 @@ class InvestAccountServiceTest {
     @DisplayName("필수 약관 미동의 시 REQUIRED_TERMS_NOT_AGREED 예외")
     void createNewInvestAccount_requiredTermsNotAgreed() {
         // given
-        CreateInvestAccountRequest request = new CreateInvestAccountRequest(
+        CreateInvestAccountChannelRequest request = new CreateInvestAccountChannelRequest(
                 "010-1234-5678",
                 "홍길동",
                 "pass1234!",
@@ -148,10 +151,64 @@ class InvestAccountServiceTest {
     }
 
     @Test
+    @DisplayName("Core 서버 400 INVEST_400_003 → ACCOUNT_ALREADY_CONNECTED 예외")
+    void createNewInvestAccount_feignException_alreadyConnected() {
+        // given
+        CreateInvestAccountChannelRequest request = validRequest();
+
+        Request dummyRequest = Request.create(
+                Request.HttpMethod.POST,
+                "http://core/internal/invest/accounts/new",
+                Collections.emptyMap(),
+                null,
+                new RequestTemplate()
+        );
+        byte[] body = "{\"status\":400,\"code\":\"INVEST_400_003\",\"message\":\"이미 연결된 증권계좌가 존재합니다.\"}"
+                .getBytes(StandardCharsets.UTF_8);
+        FeignException.BadRequest badRequestException = new FeignException.BadRequest(
+                "Already connected", dummyRequest, body, null
+        );
+        given(investCoreAccountApi.createNewInvestAccount(eq(USER_UUID), any())).willThrow(badRequestException);
+
+        // when / then
+        assertThatThrownBy(() -> investAccountService.createNewInvestAccount(request, USER_UUID))
+                .isInstanceOf(BusinessException.class)
+                .satisfies(ex -> assertThat(((BusinessException) ex).getErrorCode())
+                        .isEqualTo(InvestAccountErrorCode.ACCOUNT_ALREADY_CONNECTED));
+    }
+
+    @Test
+    @DisplayName("Core 서버 400 기타 에러 → INVALID_INPUT 예외")
+    void createNewInvestAccount_feignException_badRequest_invalidInput() {
+        // given
+        CreateInvestAccountChannelRequest request = validRequest();
+
+        Request dummyRequest = Request.create(
+                Request.HttpMethod.POST,
+                "http://core/internal/invest/accounts/new",
+                Collections.emptyMap(),
+                null,
+                new RequestTemplate()
+        );
+        byte[] body = "{\"status\":400,\"code\":\"INVEST_400_001\",\"message\":\"입력값 형식이 올바르지 않습니다.\"}"
+                .getBytes(StandardCharsets.UTF_8);
+        FeignException.BadRequest badRequestException = new FeignException.BadRequest(
+                "Invalid input", dummyRequest, body, null
+        );
+        given(investCoreAccountApi.createNewInvestAccount(eq(USER_UUID), any())).willThrow(badRequestException);
+
+        // when / then
+        assertThatThrownBy(() -> investAccountService.createNewInvestAccount(request, USER_UUID))
+                .isInstanceOf(BusinessException.class)
+                .satisfies(ex -> assertThat(((BusinessException) ex).getErrorCode())
+                        .isEqualTo(InvestAccountErrorCode.INVALID_INPUT));
+    }
+
+    @Test
     @DisplayName("Core 서버 5xx FeignException 발생 시 BAD_GATEWAY 예외")
     void createNewInvestAccount_feignException_badGateway() {
         // given
-        CreateInvestAccountRequest request = validRequest();
+        CreateInvestAccountChannelRequest request = validRequest();
 
         Request dummyRequest = Request.create(
                 Request.HttpMethod.POST,
