@@ -60,17 +60,6 @@ public record ExternalEtfProduct(
         return currency == EtfCurrency.USD;
     }
 
-    public boolean isEtf() {
-        return Boolean.TRUE.equals(isEtf);
-    }
-
-    public boolean isFractionalAvailable() {
-        return Boolean.TRUE.equals(isFractionalAvailable);
-    }
-
-    public boolean isTradeAvailable() {
-        return Boolean.TRUE.equals(isTradeAvailable);
-    }
 }
 
 
