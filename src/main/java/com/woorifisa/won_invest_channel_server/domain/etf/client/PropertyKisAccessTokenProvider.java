@@ -12,7 +12,7 @@ public class PropertyKisAccessTokenProvider implements KisAccessTokenProvider {
     public PropertyKisAccessTokenProvider(
             @Value("${external.kis.access-token:}") String accessToken
     ) {
-        this.accessToken = accessToken;
+        this.accessToken = accessToken == null ? null : accessToken.trim();
     }
 
     @Override
