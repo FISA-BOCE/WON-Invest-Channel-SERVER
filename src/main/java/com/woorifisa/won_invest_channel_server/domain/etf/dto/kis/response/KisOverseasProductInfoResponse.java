@@ -1,7 +1,9 @@
 package com.woorifisa.won_invest_channel_server.domain.etf.dto.kis.response;
 
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonProperty;
 
+@JsonIgnoreProperties(ignoreUnknown = true)
 public record KisOverseasProductInfoResponse(
 
         @JsonProperty("rt_cd")
@@ -20,6 +22,7 @@ public record KisOverseasProductInfoResponse(
     return "0".equals(rtCd);
 }
 
+@JsonIgnoreProperties(ignoreUnknown = true)
     public record Output(
 
             @JsonProperty("std_pdno")

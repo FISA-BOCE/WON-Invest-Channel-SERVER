@@ -201,4 +201,38 @@ class KisEtfProductMapperTest {
 
         return objectMapper.readValue(json, KisOverseasProductInfoResponse.class);
     }
+
+    @Test
+    @DisplayName("KIS 응답에 알 수 없는 필드가 추가되어도 -> 역직렬화에 성공")
+    void deserialize_whenKisResponseHasUnknownFields_doesNotFail() throws Exception {
+        // given
+        ObjectMapper mapper = new ObjectMapper();
+
+        String json = """
+            {
+              "rt_cd": "0",
+              "msg_cd": "MCA00000",
+              "msg1": "정상처리 되었습니다.",
+              "unknown_top_level_field": "new-field",
+              "output": {
+                "std_pdno": "US78462F1030",
+                "istt_usge_isin_cd": "US78462F1030",
+                "prdt_name": "SPDR S&P 500",
+                "prdt_eng_name": "STATE STREET SPDR S&P 500 ETF",
+                "tr_crcy_cd": "USD",
+                "ovrs_stck_etf_risk_drtp_cd": "001",
+                "unknown_output_field": "new-output-field"
+              }
+            }
+            """;
+
+        // when
+        KisOverseasProductInfoResponse response =
+                mapper.readValue(json, KisOverseasProductInfoResponse.class);
+
+        // then
+        assertThat(response.rtCd()).isEqualTo("0");
+        assertThat(response.output().stdPdno()).isEqualTo("US78462F1030");
+        assertThat(response.output().prdtEngName()).contains("ETF");
+    }
 }
