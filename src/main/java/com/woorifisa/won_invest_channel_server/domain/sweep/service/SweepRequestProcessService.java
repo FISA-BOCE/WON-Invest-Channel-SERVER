@@ -32,25 +32,20 @@ public class SweepRequestProcessService {
 
             if (response.completed()) {
                 resultOutboxService.saveCompleted(event, response);
-            } else {
+            } else if (response.failed()) {
                 resultOutboxService.saveFailed(
                         event,
                         response.sweepExecutionId(),
                         response.failureCode(),
                         response.failureMessage()
                 );
+            } else {
+                throw new BusinessException(SweepErrorCode.SWEEP_CORE_UNAVAILABLE);
             }
 
             inboxService.markProcessed(inboxEventId);
         } catch (Exception e) {
             inboxService.markFailed(inboxEventId, e.getMessage());
-
-            try {
-                resultOutboxService.saveFailed(event, null, "INVEST_CHANNEL_FAILED", e.getMessage());
-            } catch (Exception outboxException) {
-                log.warn("스윕 실패 결과 outbox 저장 실패. inboxEventId={}, idempotencyKey={}",
-                        inboxEventId, event.idempotencyKey(), outboxException);
-            }
 
             throw e;
         }
