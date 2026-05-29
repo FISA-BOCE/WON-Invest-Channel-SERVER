@@ -8,6 +8,7 @@ import jakarta.persistence.Enumerated;
 import jakarta.persistence.Id;
 import jakarta.persistence.Table;
 import lombok.AccessLevel;
+import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import org.hibernate.annotations.JdbcTypeCode;
@@ -40,4 +41,14 @@ public class InvestChnAccountSummary extends BaseTimeEntity {
     @Enumerated(EnumType.STRING)
     @Column(name = "account_status", nullable = false)
     private AccountStatus accountStatus;
+
+    @Builder
+    public InvestChnAccountSummary(UUID investAccountUuid, UUID investUserUuid, UUID userUuid,
+                                   String accountNoDisplay, AccountStatus accountStatus) {
+        this.investAccountUuid = investAccountUuid;
+        this.investUserUuid = investUserUuid;
+        this.userUuid = userUuid;
+        this.accountNoDisplay = accountNoDisplay;
+        this.accountStatus = accountStatus;
+    }
 }
