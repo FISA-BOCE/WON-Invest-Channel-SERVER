@@ -7,6 +7,8 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.LocalDateTime;
+
 @Service
 @RequiredArgsConstructor
 public class InvestChnEtfProductCommandService {
@@ -24,6 +26,8 @@ public class InvestChnEtfProductCommandService {
             throw new IllegalArgumentException("Channel ETF 저장 대상 상품 정보가 없습니다.");
         }
 
+        LocalDateTime lastSyncedAt = LocalDateTime.now();
+
         InvestChnEtfProduct chnEtfProduct = investChnEtfProductRepository.findById(etfId)
                 // 있으면 update
                 .map(existingProduct -> {
@@ -37,7 +41,8 @@ public class InvestChnEtfProductCommandService {
                             product.currency(),
                             product.riskGrade(),
                             product.isFractionalAvailable(),
-                            product.isTradeAvailable()
+                            product.isTradeAvailable(),
+                            lastSyncedAt
                     );
 
                     existingProduct.updateDisplayOrder(product.displayOrder());
@@ -57,7 +62,8 @@ public class InvestChnEtfProductCommandService {
                         product.riskGrade(),
                         product.isFractionalAvailable(),
                         product.isTradeAvailable(),
-                        product.displayOrder()
+                        product.displayOrder(),
+                        lastSyncedAt
                 ));
 
         investChnEtfProductRepository.save(chnEtfProduct);

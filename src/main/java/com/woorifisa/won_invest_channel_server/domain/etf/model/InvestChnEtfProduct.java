@@ -87,7 +87,8 @@ public class InvestChnEtfProduct {
             EtfRiskGrade riskGrade,
             Boolean isFractionalAvailable,
             Boolean isTradeAvailable,
-            Integer displayOrder
+            Integer displayOrder,
+            LocalDateTime lastSyncedAt
     ) {
         this.etfId = etfId;
         this.externalProvider = externalProvider;
@@ -101,7 +102,7 @@ public class InvestChnEtfProduct {
         this.isFractionalAvailable = isFractionalAvailable;
         this.isTradeAvailable = isTradeAvailable;
         this.displayOrder = displayOrder;
-        this.lastSyncedAt = LocalDateTime.now();
+        this.lastSyncedAt = lastSyncedAt;
     }
 
     // 신규 ETF 상품을 Channel 테이블에 처음 저장할 때
@@ -117,7 +118,8 @@ public class InvestChnEtfProduct {
             EtfRiskGrade riskGrade,
             Boolean isFractionalAvailable,
             Boolean isTradeAvailable,
-            Integer displayOrder
+            Integer displayOrder,
+            LocalDateTime lastSyncedAt
     ) {
         return new InvestChnEtfProduct(
                 etfId,
@@ -131,7 +133,8 @@ public class InvestChnEtfProduct {
                 riskGrade,
                 isFractionalAvailable,
                 isTradeAvailable,
-                displayOrder
+                displayOrder,
+                lastSyncedAt
         );
     }
 
@@ -146,7 +149,8 @@ public class InvestChnEtfProduct {
             EtfCurrency currency,
             EtfRiskGrade riskGrade,
             Boolean isFractionalAvailable,
-            Boolean isTradeAvailable
+            Boolean isTradeAvailable,
+            LocalDateTime lastSyncedAt
     ) {
         this.externalProvider = externalProvider;
         this.externalEtfId = externalEtfId;
@@ -158,7 +162,7 @@ public class InvestChnEtfProduct {
         this.riskGrade = riskGrade;
         this.isFractionalAvailable = isFractionalAvailable;
         this.isTradeAvailable = isTradeAvailable;
-        this.lastSyncedAt = LocalDateTime.now();
+        this.lastSyncedAt = lastSyncedAt;
     }
 
     public void updateDisplayOrder(Integer displayOrder) {
