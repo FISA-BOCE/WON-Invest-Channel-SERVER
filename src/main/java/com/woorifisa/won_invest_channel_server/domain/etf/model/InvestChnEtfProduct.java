@@ -11,6 +11,7 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 
 import java.time.LocalDateTime;
+import java.util.Objects;
 
 @Getter
 @Entity
@@ -102,7 +103,7 @@ public class InvestChnEtfProduct {
         this.isFractionalAvailable = isFractionalAvailable;
         this.isTradeAvailable = isTradeAvailable;
         this.displayOrder = displayOrder;
-        this.lastSyncedAt = lastSyncedAt;
+        this.lastSyncedAt = Objects.requireNonNull(syncedAt, "lastSyncedAt must not be null");;
     }
 
     // 신규 ETF 상품을 Channel 테이블에 처음 저장할 때
@@ -162,7 +163,7 @@ public class InvestChnEtfProduct {
         this.riskGrade = riskGrade;
         this.isFractionalAvailable = isFractionalAvailable;
         this.isTradeAvailable = isTradeAvailable;
-        this.lastSyncedAt = lastSyncedAt;
+        this.lastSyncedAt = Objects.requireNonNull(syncedAt, "lastSyncedAt must not be null");
     }
 
     public void updateDisplayOrder(Integer displayOrder) {
