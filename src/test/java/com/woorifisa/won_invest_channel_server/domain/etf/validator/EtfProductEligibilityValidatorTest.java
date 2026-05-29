@@ -80,9 +80,28 @@ class EtfProductEligibilityValidatorTest {
         ExternalEtfProduct product = product(
                 true,
                 EtfCurrency.USD,
-                EtfProductStatus.INACTIVE,
+                EtfProductStatus.ACTIVE,
                 true,
                 false
+        );
+
+        // when
+        boolean result = validate(product);
+
+        // then
+        assertThat(result).isFalse();
+    }
+
+    @Test
+    @DisplayName("상품 상태가 비활성 상태이면 -> false를 반환한다")
+    void validate_whenProductStatusIsInactive_returnsFalse() {
+        // given
+        ExternalEtfProduct product = product(
+                true,
+                EtfCurrency.USD,
+                EtfProductStatus.INACTIVE,
+                true,
+                true
         );
 
         // when
