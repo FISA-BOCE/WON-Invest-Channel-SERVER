@@ -41,7 +41,8 @@ class SweepRequestConsumerTest {
         SqsProperties sqsProperties = new SqsProperties(
                 "ap-northeast-2",
                 "http://localhost:4566",
-                "http://localhost:4566/000000000000/won-card-sweep-request-queue.fifo"
+                "http://localhost:4566/000000000000/won-card-sweep-request-queue.fifo",
+                "http://localhost:4566/000000000000/won-card-sweep-result-queue.fifo"
         );
         SweepRequestConsumerProperties properties =
                 new SweepRequestConsumerProperties(true, 10, 5, 300L);

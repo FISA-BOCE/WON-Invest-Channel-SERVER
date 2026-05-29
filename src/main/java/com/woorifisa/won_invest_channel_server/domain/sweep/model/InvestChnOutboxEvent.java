@@ -68,6 +68,49 @@ public class InvestChnOutboxEvent extends BaseTimeEntity {
     @Column(name = "published_at")
     private LocalDateTime publishedAt;
 
+    public void markProcessing() {
+        this.publishStatus = SweepOutboxPublishStatus.PROCESSING;
+        this.lastErrorMessage = null;
+    }
+
+    public void markPublished() {
+        this.publishStatus = SweepOutboxPublishStatus.PUBLISHED;
+        this.publishedAt = LocalDateTime.now();
+        this.nextRetryAt = null;
+        this.lastErrorMessage = null;
+    }
+
+    public void markPublishFailed(String errorMessage, int maxRetryCount) {
+        this.retryCount++;
+
+        if (this.retryCount >= maxRetryCount) {
+            this.publishStatus = SweepOutboxPublishStatus.FAILED;
+            this.nextRetryAt = null;
+        } else {
+            this.publishStatus = SweepOutboxPublishStatus.RETRY;
+            this.nextRetryAt = LocalDateTime.now().plusMinutes(Math.min(this.retryCount, 10));
+        }
+
+        this.lastErrorMessage = truncate(errorMessage);
+    }
+
+    public boolean isProcessing() {
+        return this.publishStatus == SweepOutboxPublishStatus.PROCESSING;
+    }
+
+    public boolean isPublishTarget() {
+        return this.publishStatus == SweepOutboxPublishStatus.PENDING
+                || this.publishStatus == SweepOutboxPublishStatus.RETRY;
+    }
+
+    private String truncate(String value) {
+        if (value == null) {
+            return null;
+        }
+
+        return value.length() > 500 ? value.substring(0, 500) : value;
+    }
+
     private InvestChnOutboxEvent(String eventId, SweepEventType eventType, Long sweepRequestId,
                                  Long sweepExecutionId, String payload, String correlationId,
                                  String idempotencyKey) {

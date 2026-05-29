@@ -44,10 +44,12 @@ public class SweepRequestProcessService {
             }
 
             inboxService.markProcessed(inboxEventId);
+        } catch (RuntimeException e) {
+            inboxService.markFailed(inboxEventId, e.getMessage());
+            throw e;
         } catch (Exception e) {
             inboxService.markFailed(inboxEventId, e.getMessage());
-
-            throw e;
+            throw new BusinessException(SweepErrorCode.SWEEP_CORE_UNAVAILABLE);
         }
     }
 
