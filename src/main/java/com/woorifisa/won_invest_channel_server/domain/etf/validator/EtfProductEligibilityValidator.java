@@ -1,8 +1,10 @@
 package com.woorifisa.won_invest_channel_server.domain.etf.validator;
 
 import com.woorifisa.won_invest_channel_server.domain.etf.dto.sync.ExternalEtfProduct;
+import com.woorifisa.won_invest_channel_server.domain.etf.exception.code.EtfErrorCode;
 import com.woorifisa.won_invest_channel_server.domain.etf.model.type.EtfCurrency;
 import com.woorifisa.won_invest_channel_server.domain.etf.model.type.EtfProductStatus;
+import com.woorifisa.won_invest_channel_server.domain.etf.exception.EtfSyncException;
 import java.util.ArrayList;
 import java.util.List;
 import org.springframework.stereotype.Component;
@@ -64,11 +66,7 @@ public class EtfProductEligibilityValidator {
         List<String> reasons = findIneligibleReasons(product);
 
         if (!reasons.isEmpty()) {
-            String ticker = product == null ? "UNKNOWN" : product.ticker();
-
-            throw new IllegalArgumentException(
-                    "서비스 제공 불가 ETF입니다. ticker=" + ticker + ", reasons=" + reasons
-            );
+            throw new EtfSyncException(EtfErrorCode.ETF_NOT_ELIGIBLE);
         }
     }
 

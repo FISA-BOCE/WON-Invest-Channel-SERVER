@@ -1,6 +1,8 @@
-package com.woorifisa.won_invest_channel_server.domain.etf.client;
+package com.woorifisa.won_invest_channel_server.domain.etf.external;
 
 import com.woorifisa.won_invest_channel_server.domain.etf.dto.kis.response.KisOverseasProductInfoResponse;
+import com.woorifisa.won_invest_channel_server.domain.etf.exception.code.EtfErrorCode;
+import com.woorifisa.won_invest_channel_server.domain.etf.exception.EtfSyncException;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatusCode;
@@ -8,28 +10,24 @@ import org.springframework.stereotype.Component;
 import org.springframework.web.client.RestClient;
 
 @Component
-public class KisOverseasProductInfoClient {
+public class KisOverseasProductInfoApi {
 
     private static final String SEARCH_INFO_PATH = "/uapi/overseas-price/v1/quotations/search-info";
-
     private static final String APP_KEY_HEADER = "appkey";
     private static final String APP_SECRET_HEADER = "appsecret";
     private static final String TR_ID_HEADER = "tr_id";
     private static final String CUSTOMER_TYPE_HEADER = "custtype";
-
     private static final String CONTENT_TYPE_VALUE = "application/json; charset=utf-8";
     private static final String PRODUCT_TYPE_CODE_PARAM = "PRDT_TYPE_CD";
     private static final String PRODUCT_NO_PARAM = "PDNO";
-
     private static final String TR_ID_OVERSEAS_PRODUCT_INFO = "CTPF1702R";
     private static final String CUSTOMER_TYPE_PERSONAL = "P";
-
     private final RestClient restClient;
     private final KisAccessTokenProvider accessTokenProvider;
     private final String appKey;
     private final String appSecret;
 
-    public KisOverseasProductInfoClient(
+    public KisOverseasProductInfoApi(
             RestClient.Builder restClientBuilder,
             KisAccessTokenProvider accessTokenProvider,
             @Value("${external.kis.base-url:https://openapi.koreainvestment.com:9443}") String kisBaseUrl,
@@ -67,12 +65,7 @@ public class KisOverseasProductInfoClient {
                 .header(CUSTOMER_TYPE_HEADER, CUSTOMER_TYPE_PERSONAL)
                 .retrieve()
                 .onStatus(HttpStatusCode::isError, (httpRequest, httpResponse) -> {
-                    throw new IllegalStateException(
-                            "KIS 해외주식 상품기본정보 API 호출 실패. status="
-                                    + httpResponse.getStatusCode()
-                                    + ", ticker="
-                                    + ticker
-                    );
+                    throw new EtfSyncException(EtfErrorCode.KIS_PRODUCT_API_FAILED);
                 })
                 .body(KisOverseasProductInfoResponse.class);
 
@@ -81,21 +74,21 @@ public class KisOverseasProductInfoClient {
 
     private void validateRequest(String productTypeCode, String ticker) {
         if (!hasText(productTypeCode)) {
-            throw new IllegalArgumentException("KIS 상품유형코드가 없습니다.");
+            throw new EtfSyncException(EtfErrorCode.KIS_PRODUCT_TYPE_CODE_EMPTY);
         }
 
         if (!hasText(ticker)) {
-            throw new IllegalArgumentException("KIS 상품번호가 없습니다.");
+            throw new EtfSyncException(EtfErrorCode.KIS_PRODUCT_NUMBER_EMPTY);
         }
     }
 
     private void validateConfig() {
         if (!hasText(appKey)) {
-            throw new IllegalStateException("KIS appKey 설정이 없습니다.");
+            throw new EtfSyncException(EtfErrorCode.KIS_APP_KEY_NOT_CONFIGURED);
         }
 
         if (!hasText(appSecret)) {
-            throw new IllegalStateException("KIS appSecret 설정이 없습니다.");
+            throw new EtfSyncException(EtfErrorCode.KIS_APP_SECRET_NOT_CONFIGURED);
         }
     }
 
@@ -104,28 +97,15 @@ public class KisOverseasProductInfoClient {
             String ticker
     ) {
         if (response == null) {
-            throw new IllegalStateException(
-                    "KIS 해외주식 상품기본정보 API 응답이 없습니다. ticker=" + ticker
-            );
+            throw new EtfSyncException(EtfErrorCode.KIS_PRODUCT_RESPONSE_EMPTY);
         }
 
         if (!response.isSuccess()) {
-            throw new IllegalStateException(
-                    "KIS 해외주식 상품기본정보 API 응답 실패. ticker="
-                            + ticker
-                            + ", rtCd="
-                            + response.rtCd()
-                            + ", msgCd="
-                            + response.msgCd()
-                            + ", msg="
-                            + response.msg1()
-            );
+            throw new EtfSyncException(EtfErrorCode.KIS_PRODUCT_RESPONSE_FAILED);
         }
 
         if (response.output() == null) {
-            throw new IllegalStateException(
-                    "KIS 해외주식 상품기본정보 API output이 없습니다. ticker=" + ticker
-            );
+            throw new EtfSyncException(EtfErrorCode.KIS_PRODUCT_OUTPUT_EMPTY);
         }
 
         return response;

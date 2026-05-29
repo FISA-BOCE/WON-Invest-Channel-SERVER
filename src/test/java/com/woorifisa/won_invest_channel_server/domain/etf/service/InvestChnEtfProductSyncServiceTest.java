@@ -5,8 +5,9 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
-import com.woorifisa.won_invest_channel_server.domain.etf.client.CoreEtfProductClient;
-import com.woorifisa.won_invest_channel_server.domain.etf.client.KisOverseasProductInfoClient;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.woorifisa.won_invest_channel_server.domain.etf.external.CoreEtfProductApi;
+import com.woorifisa.won_invest_channel_server.domain.etf.external.KisOverseasProductInfoApi;
 import com.woorifisa.won_invest_channel_server.domain.etf.dto.core.request.CoreEtfProductUpsertRequest;
 import com.woorifisa.won_invest_channel_server.domain.etf.dto.core.response.CoreEtfProductUpsertResponse;
 import com.woorifisa.won_invest_channel_server.domain.etf.dto.kis.response.KisOverseasProductInfoResponse;
@@ -35,7 +36,7 @@ class InvestChnEtfProductSyncServiceTest {
     private CuratedEtfProductCandidateProvider candidateProvider;
 
     @Mock
-    private KisOverseasProductInfoClient kisOverseasProductInfoClient;
+    private KisOverseasProductInfoApi kisOverseasProductInfoApi;
 
     @Mock
     private KisEtfProductMapper kisEtfProductMapper;
@@ -43,13 +44,15 @@ class InvestChnEtfProductSyncServiceTest {
     @Spy
     private EtfProductEligibilityValidator etfProductEligibilityValidator = new EtfProductEligibilityValidator();
     @Mock
-    private CoreEtfProductClient coreEtfProductClient;
+    private CoreEtfProductApi coreEtfProductApi;
 
     @Mock
     private InvestChnEtfProductCommandService investChnEtfProductCommandService;
 
     @InjectMocks
-    private InvestChnEtfProductService syncService;
+    private InvestChnEtfProductSyncService syncService;
+
+    private final ObjectMapper objectMapper = new ObjectMapper();
 
     @Test
     @DisplayName("ETF 후보별 동기화 결과를 synced, skipped, failed로 집계한다")
@@ -62,25 +65,21 @@ class InvestChnEtfProductSyncServiceTest {
         when(candidateProvider.getCandidates())
                 .thenReturn(List.of(spyCandidate, xlpCandidate, qqqCandidate));
 
-        KisOverseasProductInfoResponse spyKisResponse = mock(KisOverseasProductInfoResponse.class);
-        KisOverseasProductInfoResponse xlpKisResponse = mock(KisOverseasProductInfoResponse.class);
-        KisOverseasProductInfoResponse qqqKisResponse = mock(KisOverseasProductInfoResponse.class);
+        KisOverseasProductInfoResponse spyKisResponse = kisResponse("SPY");
+        KisOverseasProductInfoResponse xlpKisResponse = kisResponse("XLP");
+        KisOverseasProductInfoResponse qqqKisResponse = kisResponse("QQQ");
 
-        /*
-         * 여기서 getProductInfo 메서드명이 다르면,
-         * 실제 KisOverseasProductInfoClient의 public 메서드명으로 바꿔줘.
-         */
-        when(kisOverseasProductInfoClient.getProductInfo(
+        when(kisOverseasProductInfoApi.getProductInfo(
                 spyCandidate.productTypeCode(),
                 spyCandidate.ticker()
         )).thenReturn(spyKisResponse);
 
-        when(kisOverseasProductInfoClient.getProductInfo(
+        when(kisOverseasProductInfoApi.getProductInfo(
                 xlpCandidate.productTypeCode(),
                 xlpCandidate.ticker()
         )).thenReturn(xlpKisResponse);
 
-        when(kisOverseasProductInfoClient.getProductInfo(
+        when(kisOverseasProductInfoApi.getProductInfo(
                 qqqCandidate.productTypeCode(),
                 qqqCandidate.ticker()
         )).thenReturn(qqqKisResponse);
@@ -99,18 +98,17 @@ class InvestChnEtfProductSyncServiceTest {
         CoreEtfProductUpsertResponse coreResponse = mock(CoreEtfProductUpsertResponse.class);
         when(coreResponse.etfId()).thenReturn(1L);
 
-        when(coreEtfProductClient.upsertEtfProduct(any(CoreEtfProductUpsertRequest.class)))
-                .thenReturn(coreResponse)
-                .thenThrow(new IllegalStateException("Core ETF 상품 동기화 API 호출 실패. status=500 INTERNAL_SERVER_ERROR"));
+        when(coreEtfProductApi.upsertEtfProduct(any(CoreEtfProductUpsertRequest.class)))
+                .thenReturn(coreResponse);
 
         // when
         EtfProductSyncResult result = syncService.syncCuratedEtfProducts();
 
         // then
         assertThat(result.totalCount()).isEqualTo(3);
-        assertThat(result.syncedCount()).isEqualTo(1);
+        assertThat(result.syncedCount()).isEqualTo(2);
         assertThat(result.skippedCount()).isEqualTo(1);
-        assertThat(result.failedCount()).isEqualTo(1);
+        assertThat(result.failedCount()).isEqualTo(0);
 
         assertThat(result.skippedItems())
                 .hasSize(1)
@@ -119,11 +117,47 @@ class InvestChnEtfProductSyncServiceTest {
                     assertThat(item.reason()).contains("소수점 매수 가능 상품이 아닙니다.");
                 });
 
+        assertThat(result.failedItems()).isEmpty();
+    }
+
+    @Test
+    @DisplayName("Core 동기화 중 예외가 발생하면 failedItems에 일반화된 실패 사유를 추가한다")
+    void syncCuratedEtfProducts_whenCoreSyncFails_addsFailedItem() {
+        // given
+        CuratedEtfProductCandidate spyCandidate = candidate("SPY", 1);
+
+        when(candidateProvider.getCandidates())
+                .thenReturn(List.of(spyCandidate));
+
+        KisOverseasProductInfoResponse spyKisResponse = kisResponse("SPY");
+
+        when(kisOverseasProductInfoApi.getProductInfo(
+                spyCandidate.productTypeCode(),
+                spyCandidate.ticker()
+        )).thenReturn(spyKisResponse);
+
+        ExternalEtfProduct spyProduct = product("SPY", true, true, true);
+
+        when(kisEtfProductMapper.toExternalEtfProduct(spyCandidate, spyKisResponse))
+                .thenReturn(spyProduct);
+
+        when(coreEtfProductApi.upsertEtfProduct(any(CoreEtfProductUpsertRequest.class)))
+                .thenThrow(new IllegalStateException("Core ETF 상품 동기화 API 호출 실패"));
+
+        // when
+        EtfProductSyncResult result = syncService.syncCuratedEtfProducts();
+
+        // then
+        assertThat(result.totalCount()).isEqualTo(1);
+        assertThat(result.syncedCount()).isEqualTo(0);
+        assertThat(result.skippedCount()).isEqualTo(0);
+        assertThat(result.failedCount()).isEqualTo(1);
+
         assertThat(result.failedItems())
                 .hasSize(1)
                 .anySatisfy(item -> {
-                    assertThat(item.ticker()).isEqualTo("QQQ");
-                    assertThat(item.reason()).contains("동기화 처리 중 오류가 발생했습니다.");
+                    assertThat(item.ticker()).isEqualTo("SPY");
+                    assertThat(item.reason()).isEqualTo("동기화 처리 중 오류가 발생했습니다.");
                 });
     }
 
@@ -135,6 +169,41 @@ class InvestChnEtfProductSyncServiceTest {
                 EtfRiskGrade.MEDIUM,
                 displayOrder
         );
+    }
+
+    private KisOverseasProductInfoResponse kisResponse(String ticker) {
+        try {
+            String json = """
+                {
+                  "rt_cd": "0",
+                  "msg_cd": "MCA00000",
+                  "msg1": "정상처리 되었습니다.",
+                  "output": {
+                    "std_pdno": "US-%s",
+                    "istt_usge_isin_cd": "US-%s",
+                    "prdt_name": "%s ETF",
+                    "prdt_eng_name": "%s ETF",
+                    "tr_crcy_cd": "USD",
+                    "ovrs_stck_etf_risk_drtp_cd": "001",
+                    "lstg_yn": "Y",
+                    "lstg_abol_item_yn": "N",
+                    "ovrs_stck_tr_stop_dvsn_cd": "01",
+                    "mint_svc_yn": "Y",
+                    "mini_stk_tr_stat_dvsn_cd": "01",
+                    "mint_dcpt_trad_psbl_yn": "Y"
+                  }
+                }
+                """.formatted(
+                    ticker,
+                    ticker,
+                    ticker,
+                    ticker
+            );
+
+            return objectMapper.readValue(json, KisOverseasProductInfoResponse.class);
+        } catch (Exception e) {
+            throw new IllegalStateException("테스트용 KIS 응답 생성 실패", e);
+        }
     }
 
     private ExternalEtfProduct product(

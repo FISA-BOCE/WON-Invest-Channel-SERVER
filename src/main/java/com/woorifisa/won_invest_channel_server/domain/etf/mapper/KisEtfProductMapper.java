@@ -5,6 +5,8 @@ import com.woorifisa.won_invest_channel_server.domain.etf.dto.sync.ExternalEtfPr
 import com.woorifisa.won_invest_channel_server.domain.etf.dto.kis.response.KisOverseasProductInfoResponse;
 import com.woorifisa.won_invest_channel_server.domain.etf.model.type.EtfCurrency;
 import com.woorifisa.won_invest_channel_server.domain.etf.model.type.EtfProductStatus;
+import com.woorifisa.won_invest_channel_server.domain.etf.exception.code.EtfErrorCode;
+import com.woorifisa.won_invest_channel_server.domain.etf.exception.EtfSyncException;
 import org.springframework.stereotype.Component;
 
 @Component
@@ -60,11 +62,11 @@ public class KisEtfProductMapper {
             KisOverseasProductInfoResponse response
     ) {
         if (candidate == null) {
-            throw new IllegalArgumentException("ETF 후보 정보가 없습니다.");
+            throw new EtfSyncException(EtfErrorCode.ETF_CANDIDATE_EMPTY);
         }
 
         if (response == null || response.output() == null) {
-            throw new IllegalArgumentException("KIS ETF 상품기본정보 응답이 없습니다.");
+            throw new EtfSyncException(EtfErrorCode.KIS_PRODUCT_RESPONSE_EMPTY);
         }
     }
 
@@ -101,15 +103,11 @@ public class KisEtfProductMapper {
             return null;
         }
 
-        if (USD.equalsIgnoreCase(value)) {
+        if (USD.equalsIgnoreCase(value.trim())) {
             return EtfCurrency.USD;
         }
 
-        try {
-            return EtfCurrency.valueOf(value.trim().toUpperCase());
-        } catch (IllegalArgumentException e) {
-            return null;
-        }
+        return null;
     }
 
     private String firstNonBlank(String... values) {

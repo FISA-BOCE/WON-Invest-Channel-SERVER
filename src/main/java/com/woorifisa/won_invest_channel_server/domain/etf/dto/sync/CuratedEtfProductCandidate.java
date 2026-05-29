@@ -2,12 +2,6 @@ package com.woorifisa.won_invest_channel_server.domain.etf.dto.sync;
 
 import com.woorifisa.won_invest_channel_server.domain.etf.model.type.EtfRiskGrade;
 
-/**
- * WON해요 서비스 제공 대상으로 사전에 선별한 ETF 후보 DTO
- *
- * KIS 전체 종목 목록을 수집하지 않고,
- * 서비스 기획 기준으로 지정한 ETF만 KIS 상품기본정보 API로 검증하기 위한 입력값
- */
 
 public record CuratedEtfProductCandidate(
 

@@ -12,6 +12,7 @@ public enum SuccessStatus {
 
     ACCOUNT_LINKED(HttpStatus.OK, "INVEST_200_001", "투자 계좌 연결이 완료되었습니다."),
 
+    CORE_ETF_PRODUCT_SYNCED(HttpStatus.OK, "ETF_200_001", "ETF 상품 마스터 동기화가 완료되었습니다."),
     ETF_PRODUCT_SYNC_SUCCESS(HttpStatus.OK, "INVEST_200_002", "ETF 상품 동기화가 완료되었습니다."),
     ETF_PRODUCT_LIST_FOUND(HttpStatus.OK, "INVEST_200_003", "ETF 상품 목록 조회가 완료되었습니다."),
     ETF_PRODUCT_DETAIL_FOUND(HttpStatus.OK, "INVEST_200_004", "ETF 상품 상세 조회가 완료되었습니다.");

@@ -4,9 +4,6 @@ import com.woorifisa.won_invest_channel_server.domain.etf.model.type.EtfCurrency
 import com.woorifisa.won_invest_channel_server.domain.etf.model.type.EtfProductStatus;
 import com.woorifisa.won_invest_channel_server.domain.etf.model.type.EtfRiskGrade;
 
-/**
- * 외부 ETF 정보를 Invest-Channel 서버 내부에서 사용하기 위해 정규화한 DTO - CuratedEtfProductCandidate와 KIS 상품기본정보 응답을 합쳐 만듦
- */
 public record ExternalEtfProduct(
 
         // 외부 제공자 - ex) KIS
@@ -61,5 +58,3 @@ public record ExternalEtfProduct(
     }
 
 }
-
-

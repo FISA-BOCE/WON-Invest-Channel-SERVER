@@ -6,7 +6,6 @@ import com.woorifisa.won_invest_channel_server.domain.etf.model.type.EtfCurrency
 import com.woorifisa.won_invest_channel_server.domain.etf.model.type.EtfProductStatus;
 
 // Core 서버 ETF 원천 상품 동기화 API - data 응답 DTO
-
 @JsonIgnoreProperties(ignoreUnknown = true)
 public record CoreEtfProductUpsertResponse(
 

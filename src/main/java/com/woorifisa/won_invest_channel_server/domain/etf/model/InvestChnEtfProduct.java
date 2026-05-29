@@ -19,7 +19,6 @@ import java.util.Objects;
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 public class InvestChnEtfProduct {
 
-    //
     @Id
     @Column(name = "etf_id", nullable = false)
     private Long etfId;
@@ -103,7 +102,7 @@ public class InvestChnEtfProduct {
         this.isFractionalAvailable = isFractionalAvailable;
         this.isTradeAvailable = isTradeAvailable;
         this.displayOrder = displayOrder;
-        this.lastSyncedAt = Objects.requireNonNull(syncedAt, "lastSyncedAt must not be null");;
+        this.lastSyncedAt = Objects.requireNonNull(lastSyncedAt, "lastSyncedAt must not be null");;
     }
 
     // 신규 ETF 상품을 Channel 테이블에 처음 저장할 때
@@ -163,7 +162,7 @@ public class InvestChnEtfProduct {
         this.riskGrade = riskGrade;
         this.isFractionalAvailable = isFractionalAvailable;
         this.isTradeAvailable = isTradeAvailable;
-        this.lastSyncedAt = Objects.requireNonNull(syncedAt, "lastSyncedAt must not be null");
+        this.lastSyncedAt = Objects.requireNonNull(lastSyncedAt, "lastSyncedAt must not be null");
     }
 
     public void updateDisplayOrder(Integer displayOrder) {

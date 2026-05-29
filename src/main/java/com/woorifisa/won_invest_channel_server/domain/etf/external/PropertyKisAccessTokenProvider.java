@@ -1,5 +1,7 @@
-package com.woorifisa.won_invest_channel_server.domain.etf.client;
+package com.woorifisa.won_invest_channel_server.domain.etf.external;
 
+import com.woorifisa.won_invest_channel_server.domain.etf.exception.code.EtfErrorCode;
+import com.woorifisa.won_invest_channel_server.domain.etf.exception.EtfSyncException;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
@@ -8,7 +10,6 @@ public class PropertyKisAccessTokenProvider implements KisAccessTokenProvider {
 
     private final String accessToken;
 
-    //
     public PropertyKisAccessTokenProvider(
             @Value("${external.kis.access-token:}") String accessToken
     ) {
@@ -18,7 +19,7 @@ public class PropertyKisAccessTokenProvider implements KisAccessTokenProvider {
     @Override
     public String getAccessToken() {
         if (!hasText(accessToken)) {
-            throw new IllegalStateException("KIS Access Token 설정이 없습니다.");
+            throw new EtfSyncException(EtfErrorCode.KIS_ACCESS_TOKEN_NOT_CONFIGURED);
         }
 
         return accessToken;
