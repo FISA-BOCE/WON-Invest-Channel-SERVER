@@ -14,8 +14,10 @@ import com.woorifisa.won_invest_channel_server.domain.etf.validator.EtfProductEl
 import java.util.ArrayList;
 import java.util.List;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 
+@Slf4j
 @Service
 @RequiredArgsConstructor
 public class InvestChnEtfProductService {
@@ -79,9 +81,11 @@ public class InvestChnEtfProductService {
                 syncedCount++;
             } catch (Exception e) {
                 failedCount++;
+                log.error("ETF 동기화 실패. ticker={}", candidate.ticker(), e);
+
                 failedItems.add(new EtfProductSyncResult.Item(
                         candidate.ticker(),
-                        e.getMessage()
+                        "동기화 처리 중 오류가 발생했습니다."
                 ));
             }
         }

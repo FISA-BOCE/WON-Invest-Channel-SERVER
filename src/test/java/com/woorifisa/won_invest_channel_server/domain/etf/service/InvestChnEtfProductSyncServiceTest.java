@@ -123,7 +123,7 @@ class InvestChnEtfProductSyncServiceTest {
                 .hasSize(1)
                 .anySatisfy(item -> {
                     assertThat(item.ticker()).isEqualTo("QQQ");
-                    assertThat(item.reason()).contains("Core ETF 상품 동기화 API 호출 실패");
+                    assertThat(item.reason()).contains("동기화 처리 중 오류가 발생했습니다.");
                 });
     }
 
