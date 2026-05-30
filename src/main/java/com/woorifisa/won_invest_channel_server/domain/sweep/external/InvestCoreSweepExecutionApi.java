@@ -9,7 +9,7 @@ import org.springframework.web.bind.annotation.RequestBody;
 
 @FeignClient(
         name = "invest-core-sweep-execution-api",
-        url = "${internal.invest-core.url}",
+        url = "${feign.invest-core.url}",
         configuration = FeignConfig.class
 )
 public interface InvestCoreSweepExecutionApi {
