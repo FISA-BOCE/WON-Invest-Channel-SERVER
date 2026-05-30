@@ -97,4 +97,26 @@ class InvestChnEtfProductQueryServiceTest {
                 LocalDateTime.now()
         );
     }
+    @Test
+    @DisplayName("keyword의 LIKE wildcard 문자를 escape 후 Repository에 전달한다")
+    void getProvidedEtfProducts_escapesKeywordWildcards() {
+        // given
+        when(repository.findProvidedEtfProducts(
+                "VOO!%!_!!",
+                null,
+                EtfCurrency.USD,
+                null
+        )).thenReturn(List.of(
+                product(1L, "VOO", EtfCurrency.USD, true, true, 1)
+        ));
+
+        // when
+        EtfProductListResponse response =
+                service.getProvidedEtfProducts(" VOO%_! ", null, null, null);
+
+        // then
+        assertThat(response.etfs())
+                .extracting(EtfProductSummaryResponse::ticker)
+                .containsExactly("VOO");
+    }
 }

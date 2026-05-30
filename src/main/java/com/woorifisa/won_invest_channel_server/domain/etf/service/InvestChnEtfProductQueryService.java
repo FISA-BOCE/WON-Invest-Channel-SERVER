@@ -26,7 +26,7 @@ public class InvestChnEtfProductQueryService {
     ) {
         List<EtfProductSummaryResponse> etfs = investChnEtfProductRepository
                 .findProvidedEtfProducts(
-                        normalize(keyword),
+                        escapeKeyword(keyword),
                         normalize(market),
                         resolveCurrency(currency),
                         riskGrade
@@ -48,5 +48,18 @@ public class InvestChnEtfProductQueryService {
 
     private EtfCurrency resolveCurrency(EtfCurrency currency) {
         return currency == null ? EtfCurrency.USD : currency;
+    }
+
+    private String escapeKeyword(String keyword) {
+        String normalizedKeyword = normalize(keyword);
+
+        if (normalizedKeyword == null) {
+            return null;
+        }
+
+        return normalizedKeyword
+                .replace("!", "!!")
+                .replace("%", "!%")
+                .replace("_", "!_");
     }
 }

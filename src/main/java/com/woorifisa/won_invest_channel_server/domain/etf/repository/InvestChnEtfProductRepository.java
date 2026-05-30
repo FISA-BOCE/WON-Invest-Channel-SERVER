@@ -31,9 +31,9 @@ public interface InvestChnEtfProductRepository extends JpaRepository<InvestChnEt
             where product.isTradeAvailable = true
               and product.isFractionalAvailable = true
               and (:keyword is null
-                   or lower(product.ticker) like lower(concat('%', :keyword, '%'))
-                   or lower(product.etfName) like lower(concat('%', :keyword, '%'))
-                   or lower(coalesce(product.description, '')) like lower(concat('%', :keyword, '%')))
+                   or lower(product.ticker) like lower(concat('%', :keyword, '%')) escape '!'
+                   or lower(product.etfName) like lower(concat('%', :keyword, '%')) escape '!'
+                   or lower(coalesce(product.description, '')) like lower(concat('%', :keyword, '%')) escape '!')
               and (:market is null or lower(product.market) = lower(:market))
               and product.currency = :currency
               and (:riskGrade is null or product.riskGrade = :riskGrade)
