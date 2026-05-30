@@ -1,7 +1,6 @@
 package com.woorifisa.won_invest_channel_server.domain.sweep.repository;
 
 import com.woorifisa.won_invest_channel_server.domain.sweep.model.InvestChnOutboxEvent;
-import com.woorifisa.won_invest_channel_server.domain.sweep.model.enums.SweepEventType;
 import com.woorifisa.won_invest_channel_server.domain.sweep.model.enums.SweepOutboxPublishStatus;
 import jakarta.persistence.LockModeType;
 import org.springframework.data.domain.Pageable;
@@ -16,7 +15,7 @@ import java.util.List;
 import java.util.Optional;
 
 public interface InvestChnOutboxEventRepository extends JpaRepository<InvestChnOutboxEvent, Long> {
-    Optional<InvestChnOutboxEvent> findByIdempotencyKeyAndEventType(String idempotencyKey);
+    Optional<InvestChnOutboxEvent> findByIdempotencyKey(String idempotencyKey);
 
     @Lock(LockModeType.PESSIMISTIC_WRITE)
     @Query("""

@@ -35,7 +35,7 @@ public class SweepResultOutboxService {
 
     private void saveResult(SweepRequestedEvent event, Long sweepExecutionId, SweepEventType eventType,
                             String failureCode, String failureMessage) {
-        if (outboxRepository.findByIdempotencyKeyAndEventType(event.idempotencyKey()).isPresent()) {
+        if (outboxRepository.findByIdempotencyKey(event.idempotencyKey()).isPresent()) {
             return;
         }
 
