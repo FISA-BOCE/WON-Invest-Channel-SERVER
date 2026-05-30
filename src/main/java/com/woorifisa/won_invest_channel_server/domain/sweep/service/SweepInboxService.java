@@ -63,13 +63,17 @@ public class SweepInboxService {
 
     @Transactional
     public void markProcessed(Long inboxEventId) {
-        inboxRepository.findById(inboxEventId)
-                .ifPresent(InvestChnInboxEvent::markProcessed);
+        InvestChnInboxEvent inbox = inboxRepository.findById(inboxEventId)
+                .orElseThrow(() -> new IllegalStateException("스윕 inbox 이벤트를 찾을 수 없습니다."));
+
+        inbox.markProcessed();
     }
 
     @Transactional
     public void markFailed(Long inboxEventId, String errorMessage) {
-        inboxRepository.findById(inboxEventId)
-                .ifPresent(inbox -> inbox.markFailed(errorMessage));
+        InvestChnInboxEvent inbox = inboxRepository.findById(inboxEventId)
+                .orElseThrow(() -> new IllegalStateException("스윕 inbox 이벤트를 찾을 수 없습니다."));
+
+        inbox.markFailed(errorMessage);
     }
 }
