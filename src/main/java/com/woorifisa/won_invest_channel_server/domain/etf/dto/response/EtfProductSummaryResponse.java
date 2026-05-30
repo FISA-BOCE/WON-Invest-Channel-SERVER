@@ -4,6 +4,8 @@ import com.woorifisa.won_invest_channel_server.domain.etf.model.InvestChnEtfProd
 import com.woorifisa.won_invest_channel_server.domain.etf.model.type.EtfCurrency;
 import com.woorifisa.won_invest_channel_server.domain.etf.model.type.EtfRiskGrade;
 
+import java.util.Objects;
+
 public record EtfProductSummaryResponse(
         Long etfId,
         String ticker,
@@ -17,6 +19,8 @@ public record EtfProductSummaryResponse(
 ) {
 
     public static EtfProductSummaryResponse from(InvestChnEtfProduct product) {
+        Objects.requireNonNull(product, "product must not be null");
+
         return new EtfProductSummaryResponse(
                 product.getEtfId(),
                 product.getTicker(),
