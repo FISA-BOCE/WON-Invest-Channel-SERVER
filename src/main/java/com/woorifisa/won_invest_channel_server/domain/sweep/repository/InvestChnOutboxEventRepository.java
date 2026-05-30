@@ -16,7 +16,7 @@ import java.util.List;
 import java.util.Optional;
 
 public interface InvestChnOutboxEventRepository extends JpaRepository<InvestChnOutboxEvent, Long> {
-    Optional<InvestChnOutboxEvent> findByIdempotencyKeyAndEventType(String idempotencyKey, SweepEventType eventType);
+    Optional<InvestChnOutboxEvent> findByIdempotencyKeyAndEventType(String idempotencyKey);
 
     @Lock(LockModeType.PESSIMISTIC_WRITE)
     @Query("""

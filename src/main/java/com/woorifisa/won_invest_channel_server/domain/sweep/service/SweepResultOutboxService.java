@@ -8,6 +8,7 @@ import com.woorifisa.won_invest_channel_server.domain.sweep.model.InvestChnOutbo
 import com.woorifisa.won_invest_channel_server.domain.sweep.model.enums.SweepEventType;
 import com.woorifisa.won_invest_channel_server.domain.sweep.repository.InvestChnOutboxEventRepository;
 import lombok.RequiredArgsConstructor;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -34,7 +35,7 @@ public class SweepResultOutboxService {
 
     private void saveResult(SweepRequestedEvent event, Long sweepExecutionId, SweepEventType eventType,
                             String failureCode, String failureMessage) {
-        if (outboxRepository.findByIdempotencyKeyAndEventType(event.idempotencyKey(), eventType).isPresent()) {
+        if (outboxRepository.findByIdempotencyKeyAndEventType(event.idempotencyKey()).isPresent()) {
             return;
         }
 
@@ -51,7 +52,12 @@ public class SweepResultOutboxService {
                 event.idempotencyKey()
         );
 
-        outboxRepository.save(outbox);
+        try {
+            outboxRepository.save(outbox);
+        } catch (DataIntegrityViolationException e) {
+            return;
+        }
+
     }
 
     private String toPayload(
