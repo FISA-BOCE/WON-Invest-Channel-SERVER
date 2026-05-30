@@ -17,10 +17,10 @@ import java.util.Objects;
 @Entity
 @Table(name = "invest_chn_etf_product",
         indexes = {
-        @Index(
+            @Index(
                 name = "idx_invest_chn_etf_product_list",
                 columnList = "currency, is_trade_available, is_fractional_available, display_order, etf_id"
-        )
+            )
 }
 )
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
