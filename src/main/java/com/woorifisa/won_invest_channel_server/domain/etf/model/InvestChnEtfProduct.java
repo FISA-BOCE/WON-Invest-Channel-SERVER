@@ -15,7 +15,14 @@ import java.util.Objects;
 
 @Getter
 @Entity
-@Table(name = "invest_chn_etf_product")
+@Table(name = "invest_chn_etf_product",
+        indexes = {
+        @Index(
+                name = "idx_invest_chn_etf_product_list",
+                columnList = "currency, is_trade_available, is_fractional_available, display_order, etf_id"
+        )
+}
+)
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 public class InvestChnEtfProduct {
 
