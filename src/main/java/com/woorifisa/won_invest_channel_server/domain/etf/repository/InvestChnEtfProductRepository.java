@@ -30,13 +30,12 @@ public interface InvestChnEtfProductRepository extends JpaRepository<InvestChnEt
             from InvestChnEtfProduct product
             where product.isTradeAvailable = true
               and product.isFractionalAvailable = true
-              and product.currency = com.woorifisa.won_invest_channel_server.domain.etf.model.type.EtfCurrency.USD
               and (:keyword is null
                    or lower(product.ticker) like lower(concat('%', :keyword, '%'))
                    or lower(product.etfName) like lower(concat('%', :keyword, '%'))
                    or lower(coalesce(product.description, '')) like lower(concat('%', :keyword, '%')))
               and (:market is null or lower(product.market) = lower(:market))
-              and (:currency is null or product.currency = :currency)
+              and product.currency = :currency
               and (:riskGrade is null or product.riskGrade = :riskGrade)
             order by
               case when product.displayOrder is null then 1 else 0 end,

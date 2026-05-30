@@ -103,11 +103,11 @@ public class KisEtfProductMapper {
             return null;
         }
 
-        if (USD.equalsIgnoreCase(value.trim())) {
-            return EtfCurrency.USD;
+        try {
+            return EtfCurrency.valueOf(value.trim().toUpperCase());
+        } catch (IllegalArgumentException e) {
+            return null;
         }
-
-        return null;
     }
 
     private String firstNonBlank(String... values) {

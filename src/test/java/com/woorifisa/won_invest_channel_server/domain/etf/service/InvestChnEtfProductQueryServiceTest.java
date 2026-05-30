@@ -30,7 +30,7 @@ class InvestChnEtfProductQueryServiceTest {
     @DisplayName("제공 가능한 USD/거래가능/소수점가능 ETF만 반환")
     void getProvidedEtfProducts_returnsRepositoryResultsAsResponse() {
         // given
-        when(repository.findProvidedEtfProducts(null, null, null, null))
+        when(repository.findProvidedEtfProducts(null, null, EtfCurrency.USD, null))
                 .thenReturn(List.of(
                         product(1L, "VOO", EtfCurrency.USD, true, true, 1)
                 ));

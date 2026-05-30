@@ -28,7 +28,7 @@ public class InvestChnEtfProductQueryService {
                 .findProvidedEtfProducts(
                         normalize(keyword),
                         normalize(market),
-                        currency,
+                        resolveCurrency(currency),
                         riskGrade
                 )
                 .stream()
@@ -44,5 +44,9 @@ public class InvestChnEtfProductQueryService {
 
     private boolean hasText(String value) {
         return value != null && !value.isBlank();
+    }
+
+    private EtfCurrency resolveCurrency(EtfCurrency currency) {
+        return currency == null ? EtfCurrency.USD : currency;
     }
 }
