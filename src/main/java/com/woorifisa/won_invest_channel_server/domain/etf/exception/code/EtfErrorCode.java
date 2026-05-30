@@ -31,7 +31,8 @@ public enum EtfErrorCode implements ErrorCode {
     CORE_ETF_UPSERT_RESPONSE_DATA_EMPTY(HttpStatus.BAD_GATEWAY, "ETF_502_008", "Core ETF 상품 동기화 API 응답 data가 없습니다."),
     CORE_ETF_UPSERT_RESPONSE_ETF_ID_EMPTY(HttpStatus.BAD_GATEWAY, "ETF_502_010", "Core ETF 상품 동기화 API 응답 etfId가 없습니다."),
 
-    ETF_SYNC_FAILED(HttpStatus.INTERNAL_SERVER_ERROR, "ETF_500_006", "동기화 처리 중 오류가 발생했습니다.");
+    ETF_SYNC_FAILED(HttpStatus.INTERNAL_SERVER_ERROR, "ETF_500_006", "동기화 처리 중 오류가 발생했습니다."),
+    ETF_PRODUCT_NOT_FOUND(HttpStatus.NOT_FOUND, "ETF_404_001", "ETF 상품 정보를 찾을 수 없습니다.");
 
     private final HttpStatus httpStatus;
     private final String code;
