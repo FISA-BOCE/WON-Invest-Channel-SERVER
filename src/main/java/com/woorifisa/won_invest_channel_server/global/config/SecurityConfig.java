@@ -1,6 +1,7 @@
 package com.woorifisa.won_invest_channel_server.global.config;
 
 import com.woorifisa.won_invest_channel_server.global.security.AuthenticatedUser;
+import com.woorifisa.won_invest_channel_server.global.security.InternalApiAuthFilter;
 import com.woorifisa.won_invest_channel_server.global.security.RestAuthenticationEntryPoint;
 import com.woorifisa.won_invest_channel_server.global.util.JwtUtil;
 import jakarta.servlet.FilterChain;
@@ -32,6 +33,7 @@ import java.util.UUID;
 public class SecurityConfig {
 
     private final JwtUtil jwtUtil;
+    private final InternalApiAuthFilter internalApiAuthFilter;
 
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
@@ -39,12 +41,14 @@ public class SecurityConfig {
                 .csrf(AbstractHttpConfigurer::disable)
                 .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .authorizeHttpRequests(auth -> auth
+                        .requestMatchers("/internal/**").permitAll()
                         .requestMatchers("/actuator/**", "/swagger-ui/**", "/v3/api-docs/**").permitAll()
                         .anyRequest().authenticated()
                 )
                 .exceptionHandling(ex -> ex
                         .authenticationEntryPoint(new RestAuthenticationEntryPoint())
                 )
+                .addFilterBefore(internalApiAuthFilter, UsernamePasswordAuthenticationFilter.class)
                 .addFilterBefore(new JwtAuthenticationFilter(jwtUtil), UsernamePasswordAuthenticationFilter.class)
                 .build();
     }
