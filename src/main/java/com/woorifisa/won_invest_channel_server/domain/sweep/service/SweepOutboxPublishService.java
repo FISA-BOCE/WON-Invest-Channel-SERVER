@@ -25,6 +25,11 @@ public class SweepOutboxPublishService {
         try {
             message = statusService.getPublishMessage(outboxEventId);
         } catch (Exception e) {
+            statusService.markPublishFailed(
+                    outboxEventId,
+                    e.getMessage(),
+                    publisherProperties.maxRetryCount()
+            );
             log.warn("스윕 결과 outbox 발행 메시지 조회 실패. outboxEventId={}", outboxEventId, e);
             return;
         }
