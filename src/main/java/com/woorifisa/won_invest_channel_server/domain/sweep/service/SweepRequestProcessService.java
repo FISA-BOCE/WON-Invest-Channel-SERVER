@@ -16,7 +16,6 @@ import org.springframework.stereotype.Service;
 public class SweepRequestProcessService {
 
     private final SweepInboxService inboxService;
-    private final SweepResultOutboxService resultOutboxService;
     private final InvestCoreSweepExecutionApi investCoreApi;
     private final SweepRequestSuccessService successService;
 
