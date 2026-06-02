@@ -1,5 +1,7 @@
 package com.woorifisa.won_invest_channel_server.domain.account.service;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.woorifisa.won_invest_channel_server.domain.account.dto.request.CreateInvestAccountChannelRequest;
 import com.woorifisa.won_invest_channel_server.domain.account.dto.request.CreateInvestAccountRequest;
 import com.woorifisa.won_invest_channel_server.domain.account.dto.request.LinkAccountRequest;
@@ -8,6 +10,7 @@ import com.woorifisa.won_invest_channel_server.domain.account.dto.response.LinkA
 import com.woorifisa.won_invest_channel_server.domain.account.exception.code.InvestAccountErrorCode;
 import com.woorifisa.won_invest_channel_server.domain.account.external.CommonMappingApi;
 import com.woorifisa.won_invest_channel_server.domain.account.external.InvestCoreAccountApi;
+import com.woorifisa.won_invest_channel_server.domain.account.external.code.AccountExternalErrorCode;
 import com.woorifisa.won_invest_channel_server.domain.account.external.dto.InvestAccountCoreResponse;
 import com.woorifisa.won_invest_channel_server.domain.account.external.dto.LinkInvestMappingRequest;
 import com.woorifisa.won_invest_channel_server.domain.account.external.dto.MappingStatusResponse;
@@ -17,6 +20,7 @@ import com.woorifisa.won_invest_channel_server.domain.account.repository.InvestC
 import com.woorifisa.won_invest_channel_server.global.exception.code.CommonErrorCode;
 import com.woorifisa.won_invest_channel_server.global.exception.handler.BusinessException;
 import com.woorifisa.won_invest_channel_server.global.response.ApiResponse;
+import com.woorifisa.won_invest_channel_server.global.response.ErrorResponse;
 import feign.FeignException;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -37,12 +41,18 @@ public class InvestAccountService {
     private final CommonMappingApi commonMappingApi;
     private final InvestCoreAccountApi investCoreAccountApi;
     private final InvestChnAccountSummaryRepository accountSummaryRepository;
+    private final ObjectMapper objectMapper;
 
     @Transactional
     public LinkAccountResponse linkAccount(UUID userUuid, LinkAccountRequest request) {
         ApiResponse<MappingStatusResponse> mappingStatusResponse;
         try {
             mappingStatusResponse = commonMappingApi.getMappingStatus(userUuid);
+        } catch (FeignException.NotFound e) {
+            if (isCommonUserMappingNotFound(e)) {
+                throw new BusinessException(InvestAccountErrorCode.USER_MAPPING_NOT_FOUND);
+            }
+            throw new BusinessException(CommonErrorCode.BAD_GATEWAY);
         } catch (FeignException e) {
             throw new BusinessException(CommonErrorCode.BAD_GATEWAY);
         }
@@ -73,6 +83,11 @@ public class InvestAccountService {
                     userUuid,
                     new LinkInvestMappingRequest(accountSummary.getInvestUserUuid())
             );
+        } catch (FeignException.NotFound e) {
+            if (isCommonUserMappingNotFound(e)) {
+                throw new BusinessException(InvestAccountErrorCode.USER_MAPPING_NOT_FOUND);
+            }
+            throw new BusinessException(CommonErrorCode.BAD_GATEWAY);
         } catch (FeignException e) {
             throw new BusinessException(CommonErrorCode.BAD_GATEWAY);
         }
@@ -107,8 +122,7 @@ public class InvestAccountService {
             coreResponse = investCoreAccountApi.createNewInvestAccount(userUuid, coreRequest);
         } catch (FeignException.BadRequest e) {
             log.warn("Core server bad request [status={}]", e.status());
-            String body = e.contentUTF8();
-            if (body != null && body.contains("INVEST_400_003")) {
+            if (hasExternalErrorCode(e, AccountExternalErrorCode.CORE_ACCOUNT_ALREADY_CONNECTED)) {
                 throw new BusinessException(InvestAccountErrorCode.ACCOUNT_ALREADY_CONNECTED);
             }
             throw new BusinessException(InvestAccountErrorCode.INVALID_INPUT);
@@ -119,7 +133,10 @@ public class InvestAccountService {
             log.warn("Core server forbidden [status={}]", e.status());
             throw new BusinessException(CommonErrorCode.FORBIDDEN);
         } catch (FeignException e) {
-            log.warn("Core server Feign error [status={}]", e.status());
+            log.warn("Core server Feign error [status={}, body={}]", e.status(), e.contentUTF8());
+            if (isCoreAccountPersistenceFailed(e)) {
+                throw new BusinessException(InvestAccountErrorCode.CORE_ACCOUNT_PERSISTENCE_FAILED);
+            }
             throw new BusinessException(CommonErrorCode.BAD_GATEWAY);
         }
 
@@ -142,8 +159,14 @@ public class InvestAccountService {
                     userUuid,
                     new LinkInvestMappingRequest(coreData.investUserUuid())
             );
+        } catch (FeignException.NotFound e) {
+            log.warn("Common server linkInvestMapping not found [status={}, body={}]", e.status(), e.contentUTF8());
+            if (isCommonUserMappingNotFound(e)) {
+                throw new BusinessException(InvestAccountErrorCode.USER_MAPPING_NOT_FOUND);
+            }
+            throw new BusinessException(CommonErrorCode.BAD_GATEWAY);
         } catch (FeignException e) {
-            log.warn("Common server linkInvestMapping Feign error [status={}]", e.status());
+            log.warn("Common server linkInvestMapping Feign error [status={}, message={}]", e.status(), e.getMessage());
             throw new BusinessException(CommonErrorCode.BAD_GATEWAY);
         }
 
@@ -170,5 +193,28 @@ public class InvestAccountService {
                 coreData.investConnectedStatus(),
                 coreData.openedAt()
         );
+    }
+
+    private boolean isCommonUserMappingNotFound(FeignException e) {
+        return hasExternalErrorCode(e, AccountExternalErrorCode.COMMON_USER_MAPPING_NOT_FOUND);
+    }
+
+    private boolean isCoreAccountPersistenceFailed(FeignException e) {
+        return hasExternalErrorCode(e, AccountExternalErrorCode.CORE_ACCOUNT_PERSISTENCE_FAILED);
+    }
+
+    private boolean hasExternalErrorCode(FeignException e, AccountExternalErrorCode errorCode) {
+        String body = e.contentUTF8();
+        if (body == null || body.isBlank()) {
+            return false;
+        }
+
+        try {
+            ErrorResponse errorResponse = objectMapper.readValue(body, ErrorResponse.class);
+            return errorCode.getCode().equals(errorResponse.code());
+        } catch (JsonProcessingException ex) {
+            log.warn("Failed to parse external error response [status={}, body={}]", e.status(), body);
+            return false;
+        }
     }
 }
