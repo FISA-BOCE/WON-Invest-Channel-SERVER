@@ -118,7 +118,7 @@ class SweepRequestConsumerTest {
     }
 
     @Test
-    @DisplayName("validate 실패 시 inbox claim과 SQS 삭제를 하지 않는다")
+    @DisplayName("validate 실패 시 inbox claim 없이 SQS 메시지를 삭제한다")
     void pollValidateFailed() throws Exception {
         SweepRequestedEvent event = validEventWithoutIdempotencyKey();
         String body = objectMapper.writeValueAsString(event);
@@ -133,7 +133,7 @@ class SweepRequestConsumerTest {
 
         verify(inboxService, never()).claim(any(), any());
         verify(processService, never()).process(any(), any());
-        verify(sqsClient, never()).deleteMessage(any(DeleteMessageRequest.class));
+        verify(sqsClient).deleteMessage(any(DeleteMessageRequest.class));
     }
 
     @Test

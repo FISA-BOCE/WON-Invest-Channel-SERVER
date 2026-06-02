@@ -88,7 +88,7 @@ class SweepOutboxPublishServiceTest {
     }
 
     @Test
-    @DisplayName("발행 메시지 조회에 실패하면 SQS 발행과 상태 변경을 하지 않는다")
+    @DisplayName("발행 메시지 조회에 실패하면 SQS 발행 없이 결과 outbox를 RETRY 또는 FAILED 처리한다")
     void getPublishMessageFailed() {
         when(statusService.getPublishMessage(1L))
                 .thenThrow(new IllegalStateException("invalid state"));
@@ -97,7 +97,7 @@ class SweepOutboxPublishServiceTest {
 
         verify(sqsClient, never()).sendMessage(any(SendMessageRequest.class));
         verify(statusService, never()).markPublished(anyLong());
-        verify(statusService, never()).markPublishFailed(anyLong(), anyString(), anyInt());
+        verify(statusService).markPublishFailed(1L, "invalid state", 3);
     }
 
     private SweepOutboxPublishMessage message() {
