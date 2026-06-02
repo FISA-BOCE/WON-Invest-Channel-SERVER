@@ -53,9 +53,13 @@ public class SweepResultOutboxService {
         );
 
         try {
-            outboxRepository.save(outbox);
+            outboxRepository.saveAndFlush(outbox);
         } catch (DataIntegrityViolationException e) {
-            return;
+            if (outboxRepository.findByIdempotencyKey(event.idempotencyKey()).isPresent()) {
+                return;
+            }
+
+            throw e;
         }
 
     }
