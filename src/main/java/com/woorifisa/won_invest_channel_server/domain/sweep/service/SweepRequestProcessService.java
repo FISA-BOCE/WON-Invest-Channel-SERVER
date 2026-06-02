@@ -18,6 +18,7 @@ public class SweepRequestProcessService {
     private final SweepInboxService inboxService;
     private final SweepResultOutboxService resultOutboxService;
     private final InvestCoreSweepExecutionApi investCoreApi;
+    private final SweepRequestSuccessService successService;
 
     public void process(Long inboxEventId, SweepRequestedEvent event) {
         try {
@@ -30,20 +31,11 @@ public class SweepRequestProcessService {
                 throw new BusinessException(SweepErrorCode.SWEEP_CORE_UNAVAILABLE);
             }
 
-            if (response.completed()) {
-                resultOutboxService.saveCompleted(event, response);
-            } else if (response.failed()) {
-                resultOutboxService.saveFailed(
-                        event,
-                        response.sweepExecutionId(),
-                        response.failureCode(),
-                        response.failureMessage()
-                );
-            } else {
+            if (!response.completed() && !response.failed()) {
                 throw new BusinessException(SweepErrorCode.SWEEP_CORE_UNAVAILABLE);
             }
 
-            inboxService.markProcessed(inboxEventId);
+            successService.saveResultAndMarkProcessed(inboxEventId, event, response);
         } catch (RuntimeException e) {
             inboxService.markFailed(inboxEventId, e.getMessage());
             throw e;
