@@ -15,7 +15,7 @@ import java.time.LocalDateTime;
 @Table(
         name = "invest_chn_outbox_event",
         uniqueConstraints = {
-                @UniqueConstraint(name = "uk_invest_chn_outbox_idempotency_event", columnNames = {"idempotency_key"})
+                @UniqueConstraint(name = "uk_invest_chn_outbox_idempotency_key", columnNames = {"idempotency_key"})
         },
         indexes = {
                 @Index(name = "idx_invest_chn_outbox_status_retry", columnList = "publish_status, next_retry_at"),
