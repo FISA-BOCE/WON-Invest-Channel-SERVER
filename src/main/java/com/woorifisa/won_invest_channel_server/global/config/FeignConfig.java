@@ -9,19 +9,42 @@ import org.springframework.context.annotation.Configuration;
 @Configuration
 public class FeignConfig {
 
+    private static final String SERVICE_ID_HEADER = "X-Service-ID";
+    private static final String INTERNAL_API_KEY_HEADER = "X-Internal-Api-Key";
+
+    private final String serviceId;
+    private final String internalApiKey;
+
+    public FeignConfig(
+            @Value("${internal.channel.service-id:}") String serviceId,
+            @Value("${internal.channel.api-key:}") String internalApiKey
+    ) {
+        this.serviceId = normalize(serviceId);
+        this.internalApiKey = normalize(internalApiKey);
+    }
+
     @Bean
     public ErrorDecoder errorDecoder() {
         return new ErrorDecoder.Default();
     }
 
     @Bean
-    public RequestInterceptor internalApiRequestInterceptor(
-            @Value("${internal.auth.service-id}") String serviceId,
-            @Value("${internal.auth.api-key}") String apiKey
-    ) {
+    public RequestInterceptor internalApiAuthRequestInterceptor() {
         return template -> {
-            template.header("X-Service-ID", serviceId);
-            template.header("X-Internal-Api-Key", apiKey);
+            if (hasText(serviceId)) {
+                template.header(SERVICE_ID_HEADER, serviceId);
+            }
+            if (hasText(internalApiKey)) {
+                template.header(INTERNAL_API_KEY_HEADER, internalApiKey);
+            }
         };
+    }
+
+    private String normalize(String value) {
+        return value == null ? "" : value.trim();
+    }
+
+    private boolean hasText(String value) {
+        return value != null && !value.isBlank();
     }
 }
