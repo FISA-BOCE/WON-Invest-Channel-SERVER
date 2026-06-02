@@ -1,17 +1,19 @@
 package com.woorifisa.won_invest_channel_server.domain.sweep.dto.response;
 
+import com.woorifisa.won_invest_channel_server.domain.sweep.model.enums.SweepExecutionStatus;
+
 public record InvestCoreSweepExecutionResponse(
         Long sweepExecutionId,
         String idempotencyKey,
-        String status,
+        SweepExecutionStatus status,
         String failureCode,
         String failureMessage
 ) {
     public boolean completed() {
-        return "COMPLETED".equals(status);
+        return SweepExecutionStatus.COMPLETED == status;
     }
 
     public boolean failed() {
-        return "FAILED".equals(status);
+        return SweepExecutionStatus.FAILED == status;
     }
 }
