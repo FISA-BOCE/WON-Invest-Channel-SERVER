@@ -5,7 +5,7 @@ import com.woorifisa.won_invest_channel_server.domain.account.dto.response.Creat
 import com.woorifisa.won_invest_channel_server.domain.account.dto.request.LinkAccountRequest;
 import com.woorifisa.won_invest_channel_server.domain.account.dto.response.LinkAccountResponse;
 import com.woorifisa.won_invest_channel_server.domain.account.service.InvestAccountService;
-import com.woorifisa.won_invest_channel_server.global.exception.code.CommonErrorCode;
+import com.woorifisa.won_invest_channel_server.domain.auth.exception.code.AuthErrorCode;
 import com.woorifisa.won_invest_channel_server.global.exception.handler.BusinessException;
 import com.woorifisa.won_invest_channel_server.global.response.ApiResponse;
 import com.woorifisa.won_invest_channel_server.global.response.SuccessStatus;
@@ -33,10 +33,10 @@ public class InvestAccountApi {
     @PostMapping("/new")
     public ResponseEntity<ApiResponse<CreateInvestAccountResponse>> createInvestAccount(
             @AuthenticationPrincipal AuthenticatedUser authenticatedUser,
-            @Valid @RequestBody CreateInvestAccountChannelRequest request
+        @Valid @RequestBody CreateInvestAccountChannelRequest request
     ) {
         if (authenticatedUser == null) {
-            throw new BusinessException(CommonErrorCode.UNAUTHORIZED);
+            throw new BusinessException(AuthErrorCode.AUTHENTICATION_REQUIRED);
         }
         CreateInvestAccountResponse response =
                 investAccountService.createNewInvestAccount(request, authenticatedUser.userUuid());
@@ -49,10 +49,10 @@ public class InvestAccountApi {
     @PostMapping("/link")
     public ResponseEntity<ApiResponse<LinkAccountResponse>> linkAccount(
             @AuthenticationPrincipal AuthenticatedUser authenticatedUser,
-            @Valid @RequestBody LinkAccountRequest request
+        @Valid @RequestBody LinkAccountRequest request
     ) {
         if (authenticatedUser == null) {
-            throw new BusinessException(CommonErrorCode.UNAUTHORIZED);
+            throw new BusinessException(AuthErrorCode.AUTHENTICATION_REQUIRED);
         }
         LinkAccountResponse response = investAccountService.linkAccount(authenticatedUser.userUuid(), request);
         return ResponseEntity
