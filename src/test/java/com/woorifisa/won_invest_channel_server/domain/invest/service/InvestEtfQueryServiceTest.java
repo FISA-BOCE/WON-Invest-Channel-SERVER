@@ -8,9 +8,13 @@ import com.woorifisa.won_invest_channel_server.domain.invest.exception.code.Inve
 import com.woorifisa.won_invest_channel_server.domain.invest.external.InvestCoreEtfQueryApi;
 import com.woorifisa.won_invest_channel_server.global.exception.handler.BusinessException;
 import com.woorifisa.won_invest_channel_server.global.response.ApiResponse;
+import feign.FeignException;
+import feign.Request;
+import feign.Response;
 import java.math.BigDecimal;
-import java.time.Instant;
+import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
 import org.junit.jupiter.api.DisplayName;
@@ -111,6 +115,48 @@ class InvestEtfQueryServiceTest {
                         .isEqualTo(InvestErrorCode.INTERNAL_QUERY_FAILED));
     }
 
+    @Test
+    @DisplayName("Core 404 응답이면 ACCOUNT_NOT_FOUND 예외가 발생한다")
+    void getAccountEtfs_coreNotFound() {
+        given(accountSummaryRepository.findById(ACCOUNT_UUID))
+                .willReturn(Optional.of(account(AccountStatus.ACTIVE, USER_UUID)));
+        given(investCoreEtfQueryApi.getAccountEtfHoldings(USER_UUID, ACCOUNT_UUID))
+                .willThrow(feignException(404));
+
+        assertThatThrownBy(() -> investEtfQueryService.getAccountEtfs(USER_UUID, ACCOUNT_UUID))
+                .isInstanceOf(BusinessException.class)
+                .satisfies(ex -> assertThat(((BusinessException) ex).getErrorCode())
+                        .isEqualTo(InvestErrorCode.ACCOUNT_NOT_FOUND));
+    }
+
+    @Test
+    @DisplayName("Core 403 응답이면 ACCOUNT_NOT_OWNER 예외가 발생한다")
+    void getAccountEtfs_coreForbidden() {
+        given(accountSummaryRepository.findById(ACCOUNT_UUID))
+                .willReturn(Optional.of(account(AccountStatus.ACTIVE, USER_UUID)));
+        given(investCoreEtfQueryApi.getAccountEtfHoldings(USER_UUID, ACCOUNT_UUID))
+                .willThrow(feignException(403));
+
+        assertThatThrownBy(() -> investEtfQueryService.getAccountEtfs(USER_UUID, ACCOUNT_UUID))
+                .isInstanceOf(BusinessException.class)
+                .satisfies(ex -> assertThat(((BusinessException) ex).getErrorCode())
+                        .isEqualTo(InvestErrorCode.ACCOUNT_NOT_OWNER));
+    }
+
+    @Test
+    @DisplayName("Core 400 응답이면 INVALID_ACCOUNT_STATUS 예외가 발생한다")
+    void getAccountEtfs_coreBadRequest() {
+        given(accountSummaryRepository.findById(ACCOUNT_UUID))
+                .willReturn(Optional.of(account(AccountStatus.ACTIVE, USER_UUID)));
+        given(investCoreEtfQueryApi.getAccountEtfHoldings(USER_UUID, ACCOUNT_UUID))
+                .willThrow(feignException(400));
+
+        assertThatThrownBy(() -> investEtfQueryService.getAccountEtfs(USER_UUID, ACCOUNT_UUID))
+                .isInstanceOf(BusinessException.class)
+                .satisfies(ex -> assertThat(((BusinessException) ex).getErrorCode())
+                        .isEqualTo(InvestErrorCode.INVALID_ACCOUNT_STATUS));
+    }
+
     private InvestChnAccountSummary account(AccountStatus accountStatus, UUID userUuid) {
         return InvestChnAccountSummary.builder()
                 .investAccountUuid(ACCOUNT_UUID)
@@ -137,19 +183,38 @@ class InvestEtfQueryServiceTest {
                         new BigDecimal("6.45")
                 )),
                 List.of(
-                        execution("2026-05-16T00:00:00Z", "VOO", "0.0235"),
-                        execution("2026-05-15T00:00:00Z", "QQQ", "0.0100"),
-                        execution("2026-05-14T00:00:00Z", "VOO", "0.0050")
+                        execution("2026-05-16T00:00:00", "VOO", "0.0235"),
+                        execution("2026-05-15T00:00:00", "QQQ", "0.0100"),
+                        execution("2026-05-14T00:00:00", "VOO", "0.0050")
                 )
         );
     }
 
     private InvestEtfHoldingsResponse.RecentExecution execution(String executedAt, String ticker, String quantity) {
         return new InvestEtfHoldingsResponse.RecentExecution(
-                Instant.parse(executedAt),
+                LocalDateTime.parse(executedAt),
                 ticker,
                 new BigDecimal(quantity),
                 "시장가 체결"
+        );
+    }
+
+    private FeignException feignException(int status) {
+        Request request = Request.create(
+                Request.HttpMethod.GET,
+                "/internal/invest/accounts/" + ACCOUNT_UUID + "/etfs",
+                Map.of(),
+                null,
+                null,
+                null
+        );
+        return FeignException.errorStatus(
+                "InvestCoreEtfQueryApi#getAccountEtfHoldings",
+                Response.builder()
+                        .status(status)
+                        .reason("error")
+                        .request(request)
+                        .build()
         );
     }
 }
