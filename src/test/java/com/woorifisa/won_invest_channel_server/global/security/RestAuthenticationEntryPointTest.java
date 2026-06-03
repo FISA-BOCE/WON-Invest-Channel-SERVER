@@ -1,5 +1,6 @@
 package com.woorifisa.won_invest_channel_server.global.security;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import jakarta.servlet.http.HttpServletResponse;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -13,7 +14,7 @@ import static org.mockito.Mockito.mock;
 
 class RestAuthenticationEntryPointTest {
 
-    private final RestAuthenticationEntryPoint entryPoint = new RestAuthenticationEntryPoint();
+    private final RestAuthenticationEntryPoint entryPoint = new RestAuthenticationEntryPoint(new ObjectMapper());
 
     @Test
     @DisplayName("미인증 요청에 401 ErrorResponse JSON 반환")
