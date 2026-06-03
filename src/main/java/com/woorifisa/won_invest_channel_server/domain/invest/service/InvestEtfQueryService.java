@@ -50,6 +50,15 @@ public class InvestEtfQueryService {
         ApiResponse<InvestEtfHoldingsResponse> coreResponse;
         try {
             coreResponse = investCoreEtfQueryApi.getAccountEtfHoldings(userUuid, accountUuid);
+        } catch (FeignException.NotFound e) {
+            log.warn("Invest Core account not found [status={}]", e.status());
+            throw new BusinessException(InvestErrorCode.ACCOUNT_NOT_FOUND);
+        } catch (FeignException.Forbidden e) {
+            log.warn("Invest Core account ownership denied [status={}]", e.status());
+            throw new BusinessException(InvestErrorCode.ACCOUNT_NOT_OWNER);
+        } catch (FeignException.BadRequest e) {
+            log.warn("Invest Core account invalid status or bad request [status={}]", e.status());
+            throw new BusinessException(InvestErrorCode.INVALID_ACCOUNT_STATUS);
         } catch (FeignException e) {
             log.warn("Invest Core ETF holdings query failed [status={}]", e.status());
             throw new BusinessException(InvestErrorCode.INTERNAL_QUERY_FAILED);
