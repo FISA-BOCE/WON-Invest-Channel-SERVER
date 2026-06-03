@@ -1,8 +1,8 @@
 package com.woorifisa.won_invest_channel_server.domain.etf.api;
 
-import com.woorifisa.won_invest_channel_server.domain.auth.exception.code.AuthErrorCode;
 import com.woorifisa.won_invest_channel_server.domain.etf.dto.response.InvestEtfProductDetailResponse;
 import com.woorifisa.won_invest_channel_server.domain.etf.service.InvestEtfProductQueryService;
+import com.woorifisa.won_invest_channel_server.global.exception.code.CommonErrorCode;
 import com.woorifisa.won_invest_channel_server.global.exception.handler.BusinessException;
 import com.woorifisa.won_invest_channel_server.global.response.ApiResponse;
 import com.woorifisa.won_invest_channel_server.global.response.SuccessStatus;
@@ -52,7 +52,7 @@ public class InvestEtfProductApi {
 
     private AuthenticatedUser requireAuthenticatedUser(AuthenticatedUser authenticatedUser) {
         if (authenticatedUser == null) {
-            throw new BusinessException(AuthErrorCode.AUTHENTICATION_REQUIRED);
+            throw new BusinessException(CommonErrorCode.UNAUTHORIZED);
         }
         return authenticatedUser;
     }
