@@ -10,7 +10,7 @@ import com.woorifisa.won_invest_channel_server.global.security.JwtTokenProvider;
 import com.woorifisa.won_invest_channel_server.global.security.RestAccessDeniedHandler;
 import com.woorifisa.won_invest_channel_server.global.security.RestAuthenticationEntryPoint;
 import java.math.BigDecimal;
-import java.time.Instant;
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.UUID;
 import org.junit.jupiter.api.DisplayName;
@@ -80,7 +80,7 @@ class InvestEtfApiTest {
                                 new BigDecimal("6.45")
                         )),
                         List.of(new InvestEtfHoldingsResponse.RecentExecution(
-                                Instant.parse("2026-05-16T00:00:00Z"),
+                                LocalDateTime.parse("2026-05-16T00:00:00"),
                                 "VOO",
                                 new BigDecimal("0.0235"),
                                 "시장가 체결"
