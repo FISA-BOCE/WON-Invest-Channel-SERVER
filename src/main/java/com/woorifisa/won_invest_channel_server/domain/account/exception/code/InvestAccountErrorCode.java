@@ -14,7 +14,7 @@ public enum InvestAccountErrorCode implements ErrorCode {
     NOT_ACCOUNT_OWNER(HttpStatus.FORBIDDEN, "INVEST_403_001", "해당 증권계좌에 접근할 권한이 없습니다."),
 
     ACCOUNT_NOT_FOUND(HttpStatus.NOT_FOUND, "INVEST_404_001", "증권계좌 정보를 찾을 수 없습니다."),
-    USER_MAPPING_NOT_FOUND(HttpStatus.NOT_FOUND, "INVEST_404_002", "공통 사용자 매핑 정보를 찾을 수 없습니다. 먼저 회원 연동 정보를 확인해 주세요."),
+    COMMON_USER_MAPPING_NOT_FOUND(HttpStatus.NOT_FOUND, "INVEST_404_002", "공통 사용자 매핑 정보를 찾을 수 없습니다. 먼저 회원 연동 정보를 확인해 주세요."),
 
     ALREADY_LINKED(HttpStatus.CONFLICT, "INVEST_409_001", "이미 연결된 증권계좌입니다."),
 
