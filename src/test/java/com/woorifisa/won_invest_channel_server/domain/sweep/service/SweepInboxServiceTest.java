@@ -28,7 +28,7 @@ class SweepInboxServiceTest {
     void setUp() {
         inboxRepository = mock(InvestChnInboxEventRepository.class);
         SweepRequestConsumerProperties properties =
-                new SweepRequestConsumerProperties(true, 10, 5, 300L);
+                new SweepRequestConsumerProperties(true, 10, 5, 300L, 8);
         inboxService = new SweepInboxService(inboxRepository, properties);
     }
 
