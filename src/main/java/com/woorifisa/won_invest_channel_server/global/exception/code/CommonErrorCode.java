@@ -7,15 +7,9 @@ public enum CommonErrorCode implements ErrorCode {
     INVALID_REQUEST(HttpStatus.BAD_REQUEST, "COM_400_001", "요청 형식이 올바르지 않습니다."),
     INVALID_INPUT_VALUE(HttpStatus.BAD_REQUEST, "COM_400_002", "유효하지 않은 요청값입니다."),
 
-    UNAUTHORIZED(HttpStatus.UNAUTHORIZED, "AUTH_401_001", "인증이 필요합니다."),
-    TOKEN_EXPIRED(HttpStatus.UNAUTHORIZED, "AUTH_401_002", "토큰이 만료되었습니다."),
-    INVALID_TOKEN(HttpStatus.UNAUTHORIZED, "AUTH_401_003", "유효하지 않은 토큰입니다."),
-
-    FORBIDDEN(HttpStatus.FORBIDDEN, "AUTH_403_001", "해당 요청에 대한 권한이 없습니다."),
-
     RESOURCE_NOT_FOUND(HttpStatus.NOT_FOUND, "COM_404_001", "요청한 데이터를 찾을 수 없습니다."),
 
-    METHOD_NOT_ALLOWED(HttpStatus.METHOD_NOT_ALLOWED, "COM_405_001", "허용되지 않은 HTTP 메서드입니다."),
+    METHOD_NOT_ALLOWED(HttpStatus.METHOD_NOT_ALLOWED, "COM_405_001", "지원하지 않는 HTTP 메서드입니다."),
 
     ALREADY_PROCESSED(HttpStatus.CONFLICT, "COM_409_001", "이미 처리된 요청입니다."),
 

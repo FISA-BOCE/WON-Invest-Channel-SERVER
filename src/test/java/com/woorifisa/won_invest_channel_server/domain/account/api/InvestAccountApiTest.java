@@ -1,8 +1,8 @@
 package com.woorifisa.won_invest_channel_server.domain.account.api;
 
+import com.woorifisa.won_invest_channel_server.domain.auth.exception.code.AuthErrorCode;
 import com.woorifisa.won_invest_channel_server.domain.account.dto.request.LinkAccountRequest;
 import com.woorifisa.won_invest_channel_server.domain.account.service.InvestAccountService;
-import com.woorifisa.won_invest_channel_server.global.exception.code.CommonErrorCode;
 import com.woorifisa.won_invest_channel_server.global.exception.handler.BusinessException;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -35,6 +35,6 @@ class InvestAccountApiTest {
         assertThatThrownBy(() -> investAccountApi.linkAccount(null, request))
                 .isInstanceOf(BusinessException.class)
                 .satisfies(ex -> assertThat(((BusinessException) ex).getErrorCode())
-                        .isEqualTo(CommonErrorCode.UNAUTHORIZED));
+                        .isEqualTo(AuthErrorCode.AUTHENTICATION_REQUIRED));
     }
 }

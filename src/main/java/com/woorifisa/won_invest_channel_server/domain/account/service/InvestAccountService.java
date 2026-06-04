@@ -17,6 +17,7 @@ import com.woorifisa.won_invest_channel_server.domain.account.external.dto.Mappi
 import com.woorifisa.won_invest_channel_server.domain.account.model.AccountStatus;
 import com.woorifisa.won_invest_channel_server.domain.account.model.InvestChnAccountSummary;
 import com.woorifisa.won_invest_channel_server.domain.account.repository.InvestChnAccountSummaryRepository;
+import com.woorifisa.won_invest_channel_server.domain.auth.exception.code.AuthErrorCode;
 import com.woorifisa.won_invest_channel_server.global.exception.code.CommonErrorCode;
 import com.woorifisa.won_invest_channel_server.global.exception.handler.BusinessException;
 import com.woorifisa.won_invest_channel_server.global.response.ApiResponse;
@@ -133,10 +134,10 @@ public class InvestAccountService {
             throw new BusinessException(CommonErrorCode.BAD_GATEWAY, e);
         } catch (FeignException.Unauthorized e) {
             log.warn("Core server unauthorized [status={}]", e.status(), e);
-            throw new BusinessException(CommonErrorCode.UNAUTHORIZED, e);
+            throw new BusinessException(AuthErrorCode.AUTHENTICATION_REQUIRED, e);
         } catch (FeignException.Forbidden e) {
             log.warn("Core server forbidden [status={}]", e.status(), e);
-            throw new BusinessException(CommonErrorCode.FORBIDDEN, e);
+            throw new BusinessException(AuthErrorCode.FORBIDDEN, e);
         } catch (FeignException e) {
             log.warn("Core server Feign error [status={}]", e.status(), e);
             if (isCoreAccountPersistenceFailed(e)) {

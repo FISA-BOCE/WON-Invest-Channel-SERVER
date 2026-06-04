@@ -3,32 +3,32 @@ package com.woorifisa.won_invest_channel_server.global.security;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.woorifisa.won_invest_channel_server.domain.auth.exception.code.AuthErrorCode;
 import com.woorifisa.won_invest_channel_server.global.response.ErrorResponse;
+import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.MediaType;
-import org.springframework.security.core.AuthenticationException;
-import org.springframework.security.web.AuthenticationEntryPoint;
+import org.springframework.security.access.AccessDeniedException;
+import org.springframework.security.web.access.AccessDeniedHandler;
 import org.springframework.stereotype.Component;
 
 @Component
 @RequiredArgsConstructor
-public class RestAuthenticationEntryPoint implements AuthenticationEntryPoint {
+public class RestAccessDeniedHandler implements AccessDeniedHandler {
 
     private final ObjectMapper objectMapper;
 
     @Override
-    public void commence(
+    public void handle(
             HttpServletRequest request,
             HttpServletResponse response,
-            AuthenticationException authException
-    ) throws IOException {
-        ErrorResponse errorResponse = ErrorResponse.of(AuthErrorCode.AUTHENTICATION_REQUIRED);
-        response.setStatus(AuthErrorCode.AUTHENTICATION_REQUIRED.getHttpStatus().value());
-        response.setContentType(MediaType.APPLICATION_JSON_VALUE);
+            AccessDeniedException accessDeniedException
+    ) throws IOException, ServletException {
+        response.setStatus(AuthErrorCode.FORBIDDEN.getHttpStatus().value());
         response.setCharacterEncoding(StandardCharsets.UTF_8.name());
-        objectMapper.writeValue(response.getWriter(), errorResponse);
+        response.setContentType(MediaType.APPLICATION_JSON_VALUE);
+        objectMapper.writeValue(response.getWriter(), ErrorResponse.of(AuthErrorCode.FORBIDDEN));
     }
 }
