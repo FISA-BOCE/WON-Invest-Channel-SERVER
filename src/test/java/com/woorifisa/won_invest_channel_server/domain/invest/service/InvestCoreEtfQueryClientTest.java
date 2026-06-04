@@ -1,5 +1,6 @@
 package com.woorifisa.won_invest_channel_server.domain.invest.service;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.woorifisa.won_invest_channel_server.domain.invest.dto.response.InvestEtfHoldingsResponse;
 import com.woorifisa.won_invest_channel_server.domain.invest.exception.code.InvestErrorCode;
 import com.woorifisa.won_invest_channel_server.domain.invest.external.InvestCoreEtfQueryApi;
@@ -9,7 +10,8 @@ import feign.FeignException;
 import feign.Request;
 import feign.Response;
 import java.math.BigDecimal;
-import java.time.LocalDateTime;
+import java.nio.charset.StandardCharsets;
+import java.time.OffsetDateTime;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
@@ -18,6 +20,7 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
+import org.mockito.Spy;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -32,6 +35,9 @@ class InvestCoreEtfQueryClientTest {
 
     @Mock
     private InvestCoreEtfQueryApi investCoreEtfQueryApi;
+
+    @Spy
+    private ObjectMapper objectMapper = new ObjectMapper();
 
     @InjectMocks
     private InvestCoreEtfQueryClient investCoreEtfQueryClient;
@@ -85,15 +91,41 @@ class InvestCoreEtfQueryClientTest {
     }
 
     @Test
-    @DisplayName("Core 400 응답이면 INVALID_ACCOUNT_STATUS 예외가 발생한다")
-    void fetchCoreEtfHoldings_coreBadRequest() {
+    @DisplayName("Core 400 응답 code가 계좌 상태 오류이면 INVALID_ACCOUNT_STATUS 예외가 발생한다")
+    void fetchCoreEtfHoldings_coreBadRequestInvalidAccountStatus() {
+        given(investCoreEtfQueryApi.getAccountEtfHoldings(USER_UUID, ACCOUNT_UUID))
+                .willThrow(feignException(400,
+                        "{\"status\":400,\"code\":\"INVEST_400_001\",\"message\":\"정상 상태의 증권계좌가 아닙니다.\"}"));
+
+        assertThatThrownBy(() -> investCoreEtfQueryClient.fetchCoreEtfHoldings(USER_UUID, ACCOUNT_UUID))
+                .isInstanceOf(BusinessException.class)
+                .satisfies(ex -> assertThat(((BusinessException) ex).getErrorCode())
+                        .isEqualTo(InvestErrorCode.INVALID_ACCOUNT_STATUS));
+    }
+
+    @Test
+    @DisplayName("Core 400 응답 code가 계좌 상태 오류가 아니면 INTERNAL_QUERY_FAILED 예외가 발생한다")
+    void fetchCoreEtfHoldings_coreBadRequestUnknownCode() {
+        given(investCoreEtfQueryApi.getAccountEtfHoldings(USER_UUID, ACCOUNT_UUID))
+                .willThrow(feignException(400,
+                        "{\"status\":400,\"code\":\"INVEST_400_999\",\"message\":\"알 수 없는 오류입니다.\"}"));
+
+        assertThatThrownBy(() -> investCoreEtfQueryClient.fetchCoreEtfHoldings(USER_UUID, ACCOUNT_UUID))
+                .isInstanceOf(BusinessException.class)
+                .satisfies(ex -> assertThat(((BusinessException) ex).getErrorCode())
+                        .isEqualTo(InvestErrorCode.INTERNAL_QUERY_FAILED));
+    }
+
+    @Test
+    @DisplayName("Core 400 응답 body가 없으면 INTERNAL_QUERY_FAILED 예외가 발생한다")
+    void fetchCoreEtfHoldings_coreBadRequestWithoutBody() {
         given(investCoreEtfQueryApi.getAccountEtfHoldings(USER_UUID, ACCOUNT_UUID))
                 .willThrow(feignException(400));
 
         assertThatThrownBy(() -> investCoreEtfQueryClient.fetchCoreEtfHoldings(USER_UUID, ACCOUNT_UUID))
                 .isInstanceOf(BusinessException.class)
                 .satisfies(ex -> assertThat(((BusinessException) ex).getErrorCode())
-                        .isEqualTo(InvestErrorCode.INVALID_ACCOUNT_STATUS));
+                        .isEqualTo(InvestErrorCode.INTERNAL_QUERY_FAILED));
     }
 
     private InvestEtfHoldingsResponse response() {
@@ -112,7 +144,7 @@ class InvestCoreEtfQueryClientTest {
                         new BigDecimal("6.45")
                 )),
                 List.of(new InvestEtfHoldingsResponse.RecentExecution(
-                        LocalDateTime.parse("2026-05-16T00:00:00"),
+                        OffsetDateTime.parse("2026-05-16T00:00:00+09:00"),
                         "VOO",
                         new BigDecimal("0.0235"),
                         "시장가 체결"
@@ -121,6 +153,10 @@ class InvestCoreEtfQueryClientTest {
     }
 
     private FeignException feignException(int status) {
+        return feignException(status, null);
+    }
+
+    private FeignException feignException(int status, String body) {
         Request request = Request.create(
                 Request.HttpMethod.GET,
                 "/internal/invest/accounts/" + ACCOUNT_UUID + "/etfs",
@@ -135,6 +171,7 @@ class InvestCoreEtfQueryClientTest {
                         .status(status)
                         .reason("error")
                         .request(request)
+                        .body(body == null ? null : body.getBytes(StandardCharsets.UTF_8))
                         .build()
         );
     }

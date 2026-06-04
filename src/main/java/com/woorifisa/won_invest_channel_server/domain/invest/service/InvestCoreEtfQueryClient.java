@@ -1,10 +1,13 @@
 package com.woorifisa.won_invest_channel_server.domain.invest.service;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.woorifisa.won_invest_channel_server.domain.invest.dto.response.InvestEtfHoldingsResponse;
 import com.woorifisa.won_invest_channel_server.domain.invest.exception.code.InvestErrorCode;
 import com.woorifisa.won_invest_channel_server.domain.invest.external.InvestCoreEtfQueryApi;
 import com.woorifisa.won_invest_channel_server.global.exception.handler.BusinessException;
 import com.woorifisa.won_invest_channel_server.global.response.ApiResponse;
+import com.woorifisa.won_invest_channel_server.global.response.ErrorResponse;
 import feign.FeignException;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
@@ -19,6 +22,7 @@ import org.springframework.transaction.annotation.Transactional;
 public class InvestCoreEtfQueryClient {
 
     private final InvestCoreEtfQueryApi investCoreEtfQueryApi;
+    private final ObjectMapper objectMapper;
 
     @Transactional(propagation = Propagation.NOT_SUPPORTED)
     public InvestEtfHoldingsResponse fetchCoreEtfHoldings(UUID userUuid, UUID accountUuid) {
@@ -33,7 +37,10 @@ public class InvestCoreEtfQueryClient {
             throw new BusinessException(InvestErrorCode.ACCOUNT_NOT_OWNER, e);
         } catch (FeignException.BadRequest e) {
             log.warn("Invest Core account invalid status or bad request [status={}]", e.status());
-            throw new BusinessException(InvestErrorCode.INVALID_ACCOUNT_STATUS, e);
+            if (hasCoreErrorCode(e, InvestErrorCode.INVALID_ACCOUNT_STATUS.getCode())) {
+                throw new BusinessException(InvestErrorCode.INVALID_ACCOUNT_STATUS, e);
+            }
+            throw new BusinessException(InvestErrorCode.INTERNAL_QUERY_FAILED, e);
         } catch (FeignException e) {
             log.warn("Invest Core ETF holdings query failed [status={}]", e.status());
             throw new BusinessException(InvestErrorCode.INTERNAL_QUERY_FAILED, e);
@@ -47,5 +54,20 @@ public class InvestCoreEtfQueryClient {
         }
 
         return coreResponse.data();
+    }
+
+    private boolean hasCoreErrorCode(FeignException e, String expectedCode) {
+        String body = e.contentUTF8();
+        if (body == null || body.isBlank()) {
+            return false;
+        }
+
+        try {
+            ErrorResponse errorResponse = objectMapper.readValue(body, ErrorResponse.class);
+            return expectedCode.equals(errorResponse.code());
+        } catch (JsonProcessingException ex) {
+            log.warn("Failed to parse Invest Core ETF error response [status={}]", e.status(), ex);
+            return false;
+        }
     }
 }
