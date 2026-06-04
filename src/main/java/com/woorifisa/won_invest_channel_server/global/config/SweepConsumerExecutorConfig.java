@@ -15,7 +15,7 @@ public class SweepConsumerExecutorConfig {
 
     private final SweepRequestConsumerProperties properties;
 
-    @Bean(name = "sweepRequestConsumerExecutor")
+    @Bean(name = "sweepRequestConsumerExecutor", destroyMethod = "shutdown")
     public ThreadPoolExecutor sweepRequestConsumerExecutor() {
         int workerCount = properties.workerCount();
         AtomicInteger sequence = new AtomicInteger(1);
@@ -29,6 +29,7 @@ public class SweepConsumerExecutorConfig {
                 runnable -> {
                     Thread thread = new Thread(runnable);
                     thread.setName("sweep-request-consumer-" + sequence.getAndIncrement());
+                    thread.setDaemon(true);
                     return thread;
                 },
                 new ThreadPoolExecutor.CallerRunsPolicy()
