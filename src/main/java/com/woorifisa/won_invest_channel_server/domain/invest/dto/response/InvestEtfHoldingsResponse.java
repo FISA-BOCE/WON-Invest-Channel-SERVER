@@ -1,10 +1,12 @@
 package com.woorifisa.won_invest_channel_server.domain.invest.dto.response;
 
 import java.math.BigDecimal;
+import java.time.LocalDate;
 import java.time.OffsetDateTime;
 import java.util.List;
 
 public record InvestEtfHoldingsResponse(
+        LocalDate baseDate,
         BigDecimal totalEvaluationAmount,
         BigDecimal profitLossAmount,
         BigDecimal profitLossRate,
