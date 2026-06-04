@@ -69,18 +69,22 @@ public class InternalApiAuthFilter extends OncePerRequestFilter {
         }
 
         String userUuidHeader = normalize(request.getHeader(USER_UUID_HEADER));
-        if (hasText(userUuidHeader)) {
-            try {
-                UUID userUuid = UUID.fromString(userUuidHeader);
-                AuthenticatedUser authenticatedUser = new AuthenticatedUser(userUuid, userUuid, "internal");
-                UsernamePasswordAuthenticationToken authentication =
-                        new UsernamePasswordAuthenticationToken(authenticatedUser, null, Collections.emptyList());
-                SecurityContextHolder.getContext().setAuthentication(authentication);
-            } catch (IllegalArgumentException e) {
-                log.warn("내부 API 사용자 식별 헤더가 올바르지 않습니다. uri={}, userUuid={}", request.getRequestURI(), userUuidHeader);
-                writeUnauthorizedResponse(response);
-                return;
-            }
+        if (!hasText(userUuidHeader)) {
+            log.warn("내부 API 사용자 식별 헤더가 올바르지 않습니다. uri={}, userUuid={}", request.getRequestURI(), userUuidHeader);
+            writeUnauthorizedResponse(response);
+            return;
+        }
+
+        try {
+            UUID userUuid = UUID.fromString(userUuidHeader);
+            AuthenticatedUser authenticatedUser = new AuthenticatedUser(userUuid, userUuid, "internal");
+            UsernamePasswordAuthenticationToken authentication =
+                    new UsernamePasswordAuthenticationToken(authenticatedUser, null, Collections.emptyList());
+            SecurityContextHolder.getContext().setAuthentication(authentication);
+        } catch (IllegalArgumentException e) {
+            log.warn("내부 API 사용자 식별 헤더가 올바르지 않습니다. uri={}, userUuid={}", request.getRequestURI(), userUuidHeader);
+            writeUnauthorizedResponse(response);
+            return;
         }
 
         filterChain.doFilter(request, response);
