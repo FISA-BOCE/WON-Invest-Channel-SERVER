@@ -50,7 +50,7 @@ public class InvestAccountService {
             mappingStatusResponse = commonMappingApi.getMappingStatus(userUuid);
         } catch (FeignException.NotFound e) {
             if (isCommonUserMappingNotFound(e)) {
-                throw new BusinessException(InvestAccountErrorCode.USER_MAPPING_NOT_FOUND);
+                throw new BusinessException(InvestAccountErrorCode.COMMON_USER_MAPPING_NOT_FOUND, e);
             }
             throw new BusinessException(CommonErrorCode.BAD_GATEWAY);
         } catch (FeignException e) {
