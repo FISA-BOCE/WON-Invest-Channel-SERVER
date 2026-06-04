@@ -30,6 +30,7 @@ import org.springframework.transaction.annotation.Transactional;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Objects;
+import java.util.Optional;
 import java.util.UUID;
 
 @Slf4j
@@ -122,10 +123,14 @@ public class InvestAccountService {
             coreResponse = investCoreAccountApi.createNewInvestAccount(userUuid, coreRequest);
         } catch (FeignException.BadRequest e) {
             log.warn("Core server bad request [status={}]", e.status(), e);
-            if (hasExternalErrorCode(e, AccountExternalErrorCode.CORE_ACCOUNT_ALREADY_CONNECTED)) {
+            ExternalErrorCodeResolution errorCodeResolution = resolveExternalErrorCode(e);
+            if (errorCodeResolution.is(AccountExternalErrorCode.CORE_ACCOUNT_ALREADY_CONNECTED)) {
                 throw new BusinessException(InvestAccountErrorCode.ACCOUNT_ALREADY_CONNECTED, e);
             }
-            throw new BusinessException(InvestAccountErrorCode.INVALID_INPUT, e);
+            if (errorCodeResolution.is(AccountExternalErrorCode.CORE_INVALID_INPUT)) {
+                throw new BusinessException(InvestAccountErrorCode.INVALID_INPUT, e);
+            }
+            throw new BusinessException(CommonErrorCode.BAD_GATEWAY, e);
         } catch (FeignException.Unauthorized e) {
             log.warn("Core server unauthorized [status={}]", e.status(), e);
             throw new BusinessException(CommonErrorCode.UNAUTHORIZED, e);
@@ -204,17 +209,48 @@ public class InvestAccountService {
     }
 
     private boolean hasExternalErrorCode(FeignException e, AccountExternalErrorCode errorCode) {
+        return resolveExternalErrorCode(e).is(errorCode);
+    }
+
+    private ExternalErrorCodeResolution resolveExternalErrorCode(FeignException e) {
         String body = e.contentUTF8();
         if (body == null || body.isBlank()) {
-            return false;
+            return ExternalErrorCodeResolution.unreadable();
         }
 
         try {
             ErrorResponse errorResponse = objectMapper.readValue(body, ErrorResponse.class);
-            return errorCode.getCode().equals(errorResponse.code());
+            Optional<AccountExternalErrorCode> errorCode =
+                    AccountExternalErrorCode.fromCode(errorResponse.code());
+            return errorCode
+                    .map(ExternalErrorCodeResolution::matched)
+                    .orElseGet(() -> ExternalErrorCodeResolution.unknown(errorResponse.code()));
         } catch (JsonProcessingException ex) {
-            log.warn("Failed to parse external error response [status={}, body={}]", e.status(), body);
-            return false;
+            log.warn("Failed to parse external error response [status={}]", e.status(), ex);
+            return ExternalErrorCodeResolution.unreadable();
+        }
+    }
+
+    private record ExternalErrorCodeResolution(
+            boolean readable,
+            AccountExternalErrorCode errorCode,
+            String rawCode
+    ) {
+
+        private static ExternalErrorCodeResolution matched(AccountExternalErrorCode errorCode) {
+            return new ExternalErrorCodeResolution(true, errorCode, errorCode.getCode());
+        }
+
+        private static ExternalErrorCodeResolution unknown(String rawCode) {
+            return new ExternalErrorCodeResolution(true, null, rawCode);
+        }
+
+        private static ExternalErrorCodeResolution unreadable() {
+            return new ExternalErrorCodeResolution(false, null, null);
+        }
+
+        private boolean is(AccountExternalErrorCode expectedErrorCode) {
+            return readable && errorCode == expectedErrorCode;
         }
     }
 }

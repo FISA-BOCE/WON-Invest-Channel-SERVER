@@ -211,6 +211,78 @@ class InvestAccountServiceTest {
     }
 
     @Test
+    @DisplayName("Core 서버 400 응답 body가 없으면 BAD_GATEWAY 예외")
+    void createNewInvestAccount_feignException_badRequest_withoutBody_badGateway() {
+        CreateInvestAccountChannelRequest request = validRequest();
+
+        Request dummyRequest = Request.create(
+                Request.HttpMethod.POST,
+                "http://core/internal/invest/accounts/new",
+                Collections.emptyMap(),
+                null,
+                new RequestTemplate()
+        );
+        FeignException.BadRequest badRequestException = new FeignException.BadRequest(
+                "Bad request without body", dummyRequest, null, null
+        );
+        given(investCoreAccountApi.createNewInvestAccount(eq(USER_UUID), any())).willThrow(badRequestException);
+
+        assertThatThrownBy(() -> investAccountService.createNewInvestAccount(request, USER_UUID))
+                .isInstanceOf(BusinessException.class)
+                .satisfies(ex -> assertThat(((BusinessException) ex).getErrorCode())
+                        .isEqualTo(CommonErrorCode.BAD_GATEWAY));
+    }
+
+    @Test
+    @DisplayName("Core 서버 400 응답 body를 파싱할 수 없으면 BAD_GATEWAY 예외")
+    void createNewInvestAccount_feignException_badRequest_unreadableBody_badGateway() {
+        CreateInvestAccountChannelRequest request = validRequest();
+
+        Request dummyRequest = Request.create(
+                Request.HttpMethod.POST,
+                "http://core/internal/invest/accounts/new",
+                Collections.emptyMap(),
+                null,
+                new RequestTemplate()
+        );
+        byte[] body = "not-json".getBytes(StandardCharsets.UTF_8);
+        FeignException.BadRequest badRequestException = new FeignException.BadRequest(
+                "Unreadable bad request body", dummyRequest, body, null
+        );
+        given(investCoreAccountApi.createNewInvestAccount(eq(USER_UUID), any())).willThrow(badRequestException);
+
+        assertThatThrownBy(() -> investAccountService.createNewInvestAccount(request, USER_UUID))
+                .isInstanceOf(BusinessException.class)
+                .satisfies(ex -> assertThat(((BusinessException) ex).getErrorCode())
+                        .isEqualTo(CommonErrorCode.BAD_GATEWAY));
+    }
+
+    @Test
+    @DisplayName("Core 서버 400 응답 code가 알 수 없는 값이면 BAD_GATEWAY 예외")
+    void createNewInvestAccount_feignException_badRequest_unknownCode_badGateway() {
+        CreateInvestAccountChannelRequest request = validRequest();
+
+        Request dummyRequest = Request.create(
+                Request.HttpMethod.POST,
+                "http://core/internal/invest/accounts/new",
+                Collections.emptyMap(),
+                null,
+                new RequestTemplate()
+        );
+        byte[] body = "{\"status\":400,\"code\":\"INVEST_400_999\",\"message\":\"알 수 없는 오류입니다.\"}"
+                .getBytes(StandardCharsets.UTF_8);
+        FeignException.BadRequest badRequestException = new FeignException.BadRequest(
+                "Unknown bad request code", dummyRequest, body, null
+        );
+        given(investCoreAccountApi.createNewInvestAccount(eq(USER_UUID), any())).willThrow(badRequestException);
+
+        assertThatThrownBy(() -> investAccountService.createNewInvestAccount(request, USER_UUID))
+                .isInstanceOf(BusinessException.class)
+                .satisfies(ex -> assertThat(((BusinessException) ex).getErrorCode())
+                        .isEqualTo(CommonErrorCode.BAD_GATEWAY));
+    }
+
+    @Test
     @DisplayName("Core 서버 5xx FeignException 발생 시 BAD_GATEWAY 예외")
     void createNewInvestAccount_feignException_badGateway() {
         // given
