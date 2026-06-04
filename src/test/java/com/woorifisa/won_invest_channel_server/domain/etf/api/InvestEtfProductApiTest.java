@@ -4,11 +4,11 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.BDDMockito.given;
 
+import com.woorifisa.won_invest_channel_server.domain.auth.exception.code.AuthErrorCode;
 import com.woorifisa.won_invest_channel_server.domain.etf.dto.response.InvestEtfProductDetailResponse;
 import com.woorifisa.won_invest_channel_server.domain.etf.model.type.EtfCurrency;
 import com.woorifisa.won_invest_channel_server.domain.etf.model.type.EtfRiskGrade;
 import com.woorifisa.won_invest_channel_server.domain.etf.service.InvestEtfProductQueryService;
-import com.woorifisa.won_invest_channel_server.global.exception.code.CommonErrorCode;
 import com.woorifisa.won_invest_channel_server.global.exception.handler.BusinessException;
 import com.woorifisa.won_invest_channel_server.global.response.ApiResponse;
 import com.woorifisa.won_invest_channel_server.global.security.AuthenticatedUser;
@@ -48,7 +48,7 @@ class InvestEtfProductApiTest {
 
         ResponseEntity<ApiResponse<InvestEtfProductDetailResponse>> response =
                 investEtfProductApi.getEtfProductDetail(
-                        new AuthenticatedUser(USER_UUID),
+                        new AuthenticatedUser(USER_UUID, USER_UUID, "jti-test"),
                         "WOORI-FISA-APP-01",
                         "TX-20260604-ETF01",
                         1L
@@ -71,6 +71,6 @@ class InvestEtfProductApiTest {
         ))
                 .isInstanceOf(BusinessException.class)
                 .satisfies(ex -> assertThat(((BusinessException) ex).getErrorCode())
-                        .isEqualTo(CommonErrorCode.UNAUTHORIZED));
+                        .isEqualTo(AuthErrorCode.AUTHENTICATION_REQUIRED));
     }
 }
