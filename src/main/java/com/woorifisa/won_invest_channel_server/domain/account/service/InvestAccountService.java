@@ -4,9 +4,11 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.woorifisa.won_invest_channel_server.domain.account.dto.request.CreateInvestAccountChannelRequest;
 import com.woorifisa.won_invest_channel_server.domain.account.dto.request.CreateInvestAccountRequest;
+import com.woorifisa.won_invest_channel_server.domain.account.dto.request.InternalUpsertInvestAccountSummaryRequest;
 import com.woorifisa.won_invest_channel_server.domain.account.dto.request.LinkAccountRequest;
 import com.woorifisa.won_invest_channel_server.domain.account.dto.response.CreateInvestAccountResponse;
 import com.woorifisa.won_invest_channel_server.domain.account.dto.response.InternalInvestAccountsResponse;
+import com.woorifisa.won_invest_channel_server.domain.account.dto.response.InternalUpsertInvestAccountSummaryResponse;
 import com.woorifisa.won_invest_channel_server.domain.account.dto.response.LinkAccountResponse;
 import com.woorifisa.won_invest_channel_server.domain.account.exception.code.InvestAccountErrorCode;
 import com.woorifisa.won_invest_channel_server.domain.account.external.CommonMappingApi;
@@ -54,6 +56,42 @@ public class InvestAccountService {
                 .toList();
 
         return new InternalInvestAccountsResponse(accounts);
+    }
+
+    @Transactional
+    public InternalUpsertInvestAccountSummaryResponse upsertAccountSummary(
+            UUID investAccountUuid,
+            InternalUpsertInvestAccountSummaryRequest request
+    ) {
+        AccountStatus accountStatus = AccountStatus.valueOf(request.accountStatus());
+
+        InvestChnAccountSummary accountSummary = accountSummaryRepository.findById(investAccountUuid)
+                .map(existingAccount -> {
+                    existingAccount.updateSummary(
+                            request.investUserUuid(),
+                            request.userUuid(),
+                            request.accountNoDisplay(),
+                            accountStatus
+                    );
+                    return existingAccount;
+                })
+                .orElseGet(() -> InvestChnAccountSummary.builder()
+                        .investAccountUuid(investAccountUuid)
+                        .investUserUuid(request.investUserUuid())
+                        .userUuid(request.userUuid())
+                        .accountNoDisplay(request.accountNoDisplay())
+                        .accountStatus(accountStatus)
+                        .build());
+
+        InvestChnAccountSummary savedAccountSummary = accountSummaryRepository.save(accountSummary);
+
+        return new InternalUpsertInvestAccountSummaryResponse(
+                savedAccountSummary.getInvestAccountUuid(),
+                savedAccountSummary.getInvestUserUuid(),
+                savedAccountSummary.getUserUuid(),
+                savedAccountSummary.getAccountNoDisplay(),
+                savedAccountSummary.getAccountStatus().name()
+        );
     }
 
     @Transactional
@@ -163,13 +201,15 @@ public class InvestAccountService {
 
         InvestAccountCoreResponse coreData = coreResponse.data();
 
-        accountSummaryRepository.save(InvestChnAccountSummary.builder()
-                .investAccountUuid(coreData.investAccountUuid())
-                .investUserUuid(coreData.investUserUuid())
-                .userUuid(userUuid)
-                .accountNoDisplay(coreData.accountNoDisplay())
-                .accountStatus(AccountStatus.valueOf(coreData.accountStatus()))
-                .build());
+        upsertAccountSummary(
+                coreData.investAccountUuid(),
+                new InternalUpsertInvestAccountSummaryRequest(
+                        coreData.investUserUuid(),
+                        userUuid,
+                        coreData.accountNoDisplay(),
+                        coreData.accountStatus()
+                )
+        );
 
         try {
             commonMappingApi.linkInvestMapping(
