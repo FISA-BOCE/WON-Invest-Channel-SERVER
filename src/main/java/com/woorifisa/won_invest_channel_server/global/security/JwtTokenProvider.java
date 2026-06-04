@@ -44,9 +44,9 @@ public class JwtTokenProvider {
                     parseRequiredClaim(jti, "jti")
             );
         } catch (ExpiredJwtException e) {
-            throw new BusinessException(AuthErrorCode.TOKEN_EXPIRED);
+            throw new BusinessException(AuthErrorCode.TOKEN_EXPIRED, e);
         } catch (JwtException | IllegalArgumentException e) {
-            throw new BusinessException(AuthErrorCode.INVALID_TOKEN);
+            throw new BusinessException(AuthErrorCode.INVALID_TOKEN, e);
         }
     }
 
