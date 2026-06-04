@@ -1,5 +1,6 @@
 package com.woorifisa.won_invest_channel_server.domain.account.service;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.woorifisa.won_invest_channel_server.domain.account.dto.request.CreateInvestAccountChannelRequest;
 import com.woorifisa.won_invest_channel_server.domain.account.dto.request.LinkAccountRequest;
 import com.woorifisa.won_invest_channel_server.domain.account.dto.response.CreateInvestAccountResponse;
@@ -27,6 +28,7 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
+import org.mockito.Spy;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.test.context.ActiveProfiles;
 
@@ -53,6 +55,7 @@ class InvestAccountServiceTest {
     @Mock private InvestCoreAccountApi investCoreAccountApi;
     @Mock private CommonMappingApi commonMappingApi;
     @Mock private InvestChnAccountSummaryRepository accountSummaryRepository;
+    @Spy private ObjectMapper objectMapper = new ObjectMapper();
 
     @InjectMocks
     private InvestAccountService investAccountService;
@@ -208,6 +211,78 @@ class InvestAccountServiceTest {
     }
 
     @Test
+    @DisplayName("Core 서버 400 응답 body가 없으면 BAD_GATEWAY 예외")
+    void createNewInvestAccount_feignException_badRequest_withoutBody_badGateway() {
+        CreateInvestAccountChannelRequest request = validRequest();
+
+        Request dummyRequest = Request.create(
+                Request.HttpMethod.POST,
+                "http://core/internal/invest/accounts/new",
+                Collections.emptyMap(),
+                null,
+                new RequestTemplate()
+        );
+        FeignException.BadRequest badRequestException = new FeignException.BadRequest(
+                "Bad request without body", dummyRequest, null, null
+        );
+        given(investCoreAccountApi.createNewInvestAccount(eq(USER_UUID), any())).willThrow(badRequestException);
+
+        assertThatThrownBy(() -> investAccountService.createNewInvestAccount(request, USER_UUID))
+                .isInstanceOf(BusinessException.class)
+                .satisfies(ex -> assertThat(((BusinessException) ex).getErrorCode())
+                        .isEqualTo(CommonErrorCode.BAD_GATEWAY));
+    }
+
+    @Test
+    @DisplayName("Core 서버 400 응답 body를 파싱할 수 없으면 BAD_GATEWAY 예외")
+    void createNewInvestAccount_feignException_badRequest_unreadableBody_badGateway() {
+        CreateInvestAccountChannelRequest request = validRequest();
+
+        Request dummyRequest = Request.create(
+                Request.HttpMethod.POST,
+                "http://core/internal/invest/accounts/new",
+                Collections.emptyMap(),
+                null,
+                new RequestTemplate()
+        );
+        byte[] body = "not-json".getBytes(StandardCharsets.UTF_8);
+        FeignException.BadRequest badRequestException = new FeignException.BadRequest(
+                "Unreadable bad request body", dummyRequest, body, null
+        );
+        given(investCoreAccountApi.createNewInvestAccount(eq(USER_UUID), any())).willThrow(badRequestException);
+
+        assertThatThrownBy(() -> investAccountService.createNewInvestAccount(request, USER_UUID))
+                .isInstanceOf(BusinessException.class)
+                .satisfies(ex -> assertThat(((BusinessException) ex).getErrorCode())
+                        .isEqualTo(CommonErrorCode.BAD_GATEWAY));
+    }
+
+    @Test
+    @DisplayName("Core 서버 400 응답 code가 알 수 없는 값이면 BAD_GATEWAY 예외")
+    void createNewInvestAccount_feignException_badRequest_unknownCode_badGateway() {
+        CreateInvestAccountChannelRequest request = validRequest();
+
+        Request dummyRequest = Request.create(
+                Request.HttpMethod.POST,
+                "http://core/internal/invest/accounts/new",
+                Collections.emptyMap(),
+                null,
+                new RequestTemplate()
+        );
+        byte[] body = "{\"status\":400,\"code\":\"INVEST_400_999\",\"message\":\"알 수 없는 오류입니다.\"}"
+                .getBytes(StandardCharsets.UTF_8);
+        FeignException.BadRequest badRequestException = new FeignException.BadRequest(
+                "Unknown bad request code", dummyRequest, body, null
+        );
+        given(investCoreAccountApi.createNewInvestAccount(eq(USER_UUID), any())).willThrow(badRequestException);
+
+        assertThatThrownBy(() -> investAccountService.createNewInvestAccount(request, USER_UUID))
+                .isInstanceOf(BusinessException.class)
+                .satisfies(ex -> assertThat(((BusinessException) ex).getErrorCode())
+                        .isEqualTo(CommonErrorCode.BAD_GATEWAY));
+    }
+
+    @Test
     @DisplayName("Core 서버 5xx FeignException 발생 시 BAD_GATEWAY 예외")
     void createNewInvestAccount_feignException_badGateway() {
         // given
@@ -233,6 +308,36 @@ class InvestAccountServiceTest {
     }
 
     @Test
+    @DisplayName("Core 서버 INVEST_500_001 발생 시 summary를 저장하지 않고 CORE_ACCOUNT_PERSISTENCE_FAILED 예외")
+    void createNewInvestAccount_feignException_corePersistenceFailed() {
+        // given
+        CreateInvestAccountChannelRequest request = validRequest();
+
+        Request dummyRequest = Request.create(
+                Request.HttpMethod.POST,
+                "http://core/internal/invest/accounts/new",
+                Collections.emptyMap(),
+                null,
+                new RequestTemplate()
+        );
+        byte[] body = "{\"status\":500,\"code\":\"INVEST_500_001\",\"message\":\"증권계좌 원본 정보 저장에 실패했습니다.\"}"
+                .getBytes(StandardCharsets.UTF_8);
+        FeignException.InternalServerError feignException = new FeignException.InternalServerError(
+                "Core account persistence failed", dummyRequest, body, null
+        );
+        given(investCoreAccountApi.createNewInvestAccount(eq(USER_UUID), any())).willThrow(feignException);
+
+        // when / then
+        assertThatThrownBy(() -> investAccountService.createNewInvestAccount(request, USER_UUID))
+                .isInstanceOf(BusinessException.class)
+                .satisfies(ex -> assertThat(((BusinessException) ex).getErrorCode())
+                        .isEqualTo(InvestAccountErrorCode.CORE_ACCOUNT_PERSISTENCE_FAILED));
+
+        verify(accountSummaryRepository, never()).save(any());
+        verify(commonMappingApi, never()).linkInvestMapping(any(), any());
+    }
+
+    @Test
     @DisplayName("계좌 동기화 저장 후 linkInvestMapping Feign 오류 시 BAD_GATEWAY 예외")
     void createNewInvestAccount_linkInvestMapping_feignException() {
         // given
@@ -247,6 +352,32 @@ class InvestAccountServiceTest {
                 .satisfies(ex -> assertThat(((BusinessException) ex).getErrorCode())
                         .isEqualTo(CommonErrorCode.BAD_GATEWAY));
         verify(accountSummaryRepository).save(any(InvestChnAccountSummary.class));
+    }
+
+    @Test
+    @DisplayName("계좌 동기화 저장 후 공통 사용자 매핑이 없으면 COMMON_USER_MAPPING_NOT_FOUND 예외")
+    void createNewInvestAccount_linkInvestMapping_mappingNotFound() {
+        CreateInvestAccountChannelRequest request = validRequest();
+        given(investCoreAccountApi.createNewInvestAccount(eq(USER_UUID), any())).willReturn(coreSuccessResponse());
+
+        Request dummyRequest = Request.create(
+                Request.HttpMethod.PATCH,
+                "http://common/internal/mappings/users/" + USER_UUID + "/invest",
+                Collections.emptyMap(),
+                null,
+                new RequestTemplate()
+        );
+        byte[] body = "{\"status\":404,\"code\":\"MAP_404_001\",\"message\":\"고객 매핑 정보를 찾을 수 없습니다.\"}"
+                .getBytes(StandardCharsets.UTF_8);
+        FeignException.NotFound notFoundException = new FeignException.NotFound(
+                "Mapping not found", dummyRequest, body, null
+        );
+        willThrow(notFoundException).given(commonMappingApi).linkInvestMapping(eq(USER_UUID), any());
+
+        assertThatThrownBy(() -> investAccountService.createNewInvestAccount(request, USER_UUID))
+                .isInstanceOf(BusinessException.class)
+                .satisfies(ex -> assertThat(((BusinessException) ex).getErrorCode())
+                        .isEqualTo(InvestAccountErrorCode.COMMON_USER_MAPPING_NOT_FOUND));
     }
 
     // -------------------------------------------------------------------------
@@ -396,6 +527,72 @@ class InvestAccountServiceTest {
                 .isInstanceOf(BusinessException.class)
                 .satisfies(ex -> assertThat(((BusinessException) ex).getErrorCode())
                         .isEqualTo(CommonErrorCode.BAD_GATEWAY));
+    }
+
+    @Test
+    @DisplayName("getMappingStatus에서 공통 사용자 매핑이 없으면 COMMON_USER_MAPPING_NOT_FOUND 예외 발생")
+    void linkAccount_getMappingStatus_mappingNotFound() {
+        UUID userUuid = UUID.randomUUID();
+        LinkAccountRequest request = new LinkAccountRequest(UUID.randomUUID());
+
+        Request dummyRequest = Request.create(
+                Request.HttpMethod.GET,
+                "http://common/internal/mappings/users/" + userUuid,
+                Collections.emptyMap(),
+                null,
+                new RequestTemplate()
+        );
+        byte[] body = "{\"status\":404,\"code\":\"MAP_404_001\",\"message\":\"고객 매핑 정보를 찾을 수 없습니다.\"}"
+                .getBytes(StandardCharsets.UTF_8);
+        FeignException.NotFound notFoundException = new FeignException.NotFound(
+                "Mapping not found", dummyRequest, body, null
+        );
+        given(commonMappingApi.getMappingStatus(userUuid)).willThrow(notFoundException);
+
+        assertThatThrownBy(() -> investAccountService.linkAccount(userUuid, request))
+                .isInstanceOf(BusinessException.class)
+                .satisfies(ex -> assertThat(((BusinessException) ex).getErrorCode())
+                        .isEqualTo(InvestAccountErrorCode.COMMON_USER_MAPPING_NOT_FOUND));
+    }
+
+    @Test
+    @DisplayName("linkInvestMapping에서 공통 사용자 매핑이 없으면 COMMON_USER_MAPPING_NOT_FOUND 예외 발생")
+    void linkAccount_linkInvestMapping_mappingNotFound() {
+        UUID userUuid = UUID.randomUUID();
+        UUID investAccountUuid = UUID.randomUUID();
+        UUID investUserUuid = UUID.randomUUID();
+        LinkAccountRequest request = new LinkAccountRequest(investAccountUuid);
+
+        MappingStatusResponse mappingStatus = new MappingStatusResponse(new MappingStatusResponse.InvestStatus(false));
+        ApiResponse<MappingStatusResponse> mappingResponse = ApiResponse.of(SuccessStatus.OK, mappingStatus);
+
+        InvestChnAccountSummary accountSummary = mock(InvestChnAccountSummary.class);
+        given(accountSummary.getUserUuid()).willReturn(userUuid);
+        given(accountSummary.getAccountStatus()).willReturn(AccountStatus.ACTIVE);
+        given(accountSummary.getInvestUserUuid()).willReturn(investUserUuid);
+
+        Request dummyRequest = Request.create(
+                Request.HttpMethod.PATCH,
+                "http://common/internal/mappings/users/" + userUuid + "/invest",
+                Collections.emptyMap(),
+                null,
+                new RequestTemplate()
+        );
+        byte[] body = "{\"status\":404,\"code\":\"MAP_404_001\",\"message\":\"고객 매핑 정보를 찾을 수 없습니다.\"}"
+                .getBytes(StandardCharsets.UTF_8);
+        FeignException.NotFound notFoundException = new FeignException.NotFound(
+                "Mapping not found", dummyRequest, body, null
+        );
+
+        given(commonMappingApi.getMappingStatus(userUuid)).willReturn(mappingResponse);
+        given(accountSummaryRepository.findById(investAccountUuid)).willReturn(Optional.of(accountSummary));
+        willThrow(notFoundException).given(commonMappingApi).linkInvestMapping(eq(userUuid), any());
+
+        assertThatThrownBy(() -> investAccountService.linkAccount(userUuid, request))
+                .isInstanceOf(BusinessException.class)
+                .satisfies(ex -> assertThat(((BusinessException) ex).getErrorCode())
+                        .isEqualTo(InvestAccountErrorCode.COMMON_USER_MAPPING_NOT_FOUND))
+                .hasCause(notFoundException);
     }
 
     @Test
