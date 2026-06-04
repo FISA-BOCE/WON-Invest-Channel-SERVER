@@ -16,11 +16,12 @@ public class FeignConfig {
     private final String internalApiKey;
 
     public FeignConfig(
-            @Value("${internal.channel.service-id:}") String serviceId,
-            @Value("${internal.channel.api-key:}") String internalApiKey
+            @Value("${internal.channel.service-id}") String serviceId,
+            @Value("${internal.channel.api-key}") String internalApiKey
     ) {
         this.serviceId = normalize(serviceId);
         this.internalApiKey = normalize(internalApiKey);
+        validateInternalAuthProperties();
     }
 
     @Bean
@@ -31,13 +32,15 @@ public class FeignConfig {
     @Bean
     public RequestInterceptor internalApiAuthRequestInterceptor() {
         return template -> {
-            if (hasText(serviceId)) {
-                template.header(SERVICE_ID_HEADER, serviceId);
-            }
-            if (hasText(internalApiKey)) {
-                template.header(INTERNAL_API_KEY_HEADER, internalApiKey);
-            }
+            template.header(SERVICE_ID_HEADER, serviceId);
+            template.header(INTERNAL_API_KEY_HEADER, internalApiKey);
         };
+    }
+
+    private void validateInternalAuthProperties() {
+        if (!hasText(serviceId) || !hasText(internalApiKey)) {
+            throw new IllegalStateException("internal.channel.service-id and internal.channel.api-key must not be blank.");
+        }
     }
 
     private String normalize(String value) {

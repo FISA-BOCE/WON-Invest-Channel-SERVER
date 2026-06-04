@@ -52,9 +52,9 @@ public class InvestAccountService {
             if (isCommonUserMappingNotFound(e)) {
                 throw new BusinessException(InvestAccountErrorCode.COMMON_USER_MAPPING_NOT_FOUND, e);
             }
-            throw new BusinessException(CommonErrorCode.BAD_GATEWAY);
+            throw new BusinessException(CommonErrorCode.BAD_GATEWAY, e);
         } catch (FeignException e) {
-            throw new BusinessException(CommonErrorCode.BAD_GATEWAY);
+            throw new BusinessException(CommonErrorCode.BAD_GATEWAY, e);
         }
 
         if (mappingStatusResponse == null || mappingStatusResponse.data() == null
@@ -85,11 +85,11 @@ public class InvestAccountService {
             );
         } catch (FeignException.NotFound e) {
             if (isCommonUserMappingNotFound(e)) {
-                throw new BusinessException(InvestAccountErrorCode.USER_MAPPING_NOT_FOUND);
+                throw new BusinessException(InvestAccountErrorCode.COMMON_USER_MAPPING_NOT_FOUND, e);
             }
-            throw new BusinessException(CommonErrorCode.BAD_GATEWAY);
+            throw new BusinessException(CommonErrorCode.BAD_GATEWAY, e);
         } catch (FeignException e) {
-            throw new BusinessException(CommonErrorCode.BAD_GATEWAY);
+            throw new BusinessException(CommonErrorCode.BAD_GATEWAY, e);
         }
 
         return new LinkAccountResponse(
@@ -121,23 +121,23 @@ public class InvestAccountService {
         try {
             coreResponse = investCoreAccountApi.createNewInvestAccount(userUuid, coreRequest);
         } catch (FeignException.BadRequest e) {
-            log.warn("Core server bad request [status={}]", e.status());
+            log.warn("Core server bad request [status={}]", e.status(), e);
             if (hasExternalErrorCode(e, AccountExternalErrorCode.CORE_ACCOUNT_ALREADY_CONNECTED)) {
-                throw new BusinessException(InvestAccountErrorCode.ACCOUNT_ALREADY_CONNECTED);
+                throw new BusinessException(InvestAccountErrorCode.ACCOUNT_ALREADY_CONNECTED, e);
             }
-            throw new BusinessException(InvestAccountErrorCode.INVALID_INPUT);
+            throw new BusinessException(InvestAccountErrorCode.INVALID_INPUT, e);
         } catch (FeignException.Unauthorized e) {
-            log.warn("Core server unauthorized [status={}]", e.status());
-            throw new BusinessException(CommonErrorCode.UNAUTHORIZED);
+            log.warn("Core server unauthorized [status={}]", e.status(), e);
+            throw new BusinessException(CommonErrorCode.UNAUTHORIZED, e);
         } catch (FeignException.Forbidden e) {
-            log.warn("Core server forbidden [status={}]", e.status());
-            throw new BusinessException(CommonErrorCode.FORBIDDEN);
+            log.warn("Core server forbidden [status={}]", e.status(), e);
+            throw new BusinessException(CommonErrorCode.FORBIDDEN, e);
         } catch (FeignException e) {
-            log.warn("Core server Feign error [status={}, body={}]", e.status(), e.contentUTF8());
+            log.warn("Core server Feign error [status={}]", e.status(), e);
             if (isCoreAccountPersistenceFailed(e)) {
-                throw new BusinessException(InvestAccountErrorCode.CORE_ACCOUNT_PERSISTENCE_FAILED);
+                throw new BusinessException(InvestAccountErrorCode.CORE_ACCOUNT_PERSISTENCE_FAILED, e);
             }
-            throw new BusinessException(CommonErrorCode.BAD_GATEWAY);
+            throw new BusinessException(CommonErrorCode.BAD_GATEWAY, e);
         }
 
         if (coreResponse == null || coreResponse.data() == null) {
@@ -160,14 +160,14 @@ public class InvestAccountService {
                     new LinkInvestMappingRequest(coreData.investUserUuid())
             );
         } catch (FeignException.NotFound e) {
-            log.warn("Common server linkInvestMapping not found [status={}, body={}]", e.status(), e.contentUTF8());
+            log.warn("Common server linkInvestMapping not found [status={}]", e.status(), e);
             if (isCommonUserMappingNotFound(e)) {
-                throw new BusinessException(InvestAccountErrorCode.USER_MAPPING_NOT_FOUND);
+                throw new BusinessException(InvestAccountErrorCode.COMMON_USER_MAPPING_NOT_FOUND, e);
             }
-            throw new BusinessException(CommonErrorCode.BAD_GATEWAY);
+            throw new BusinessException(CommonErrorCode.BAD_GATEWAY, e);
         } catch (FeignException e) {
-            log.warn("Common server linkInvestMapping Feign error [status={}, message={}]", e.status(), e.getMessage());
-            throw new BusinessException(CommonErrorCode.BAD_GATEWAY);
+            log.warn("Common server linkInvestMapping Feign error [status={}]", e.status(), e);
+            throw new BusinessException(CommonErrorCode.BAD_GATEWAY, e);
         }
 
         return toChannelResponse(coreData);

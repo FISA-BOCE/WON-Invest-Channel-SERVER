@@ -283,7 +283,7 @@ class InvestAccountServiceTest {
     }
 
     @Test
-    @DisplayName("계좌 동기화 저장 후 공통 사용자 매핑이 없으면 USER_MAPPING_NOT_FOUND 예외")
+    @DisplayName("계좌 동기화 저장 후 공통 사용자 매핑이 없으면 COMMON_USER_MAPPING_NOT_FOUND 예외")
     void createNewInvestAccount_linkInvestMapping_mappingNotFound() {
         CreateInvestAccountChannelRequest request = validRequest();
         given(investCoreAccountApi.createNewInvestAccount(eq(USER_UUID), any())).willReturn(coreSuccessResponse());
@@ -305,7 +305,7 @@ class InvestAccountServiceTest {
         assertThatThrownBy(() -> investAccountService.createNewInvestAccount(request, USER_UUID))
                 .isInstanceOf(BusinessException.class)
                 .satisfies(ex -> assertThat(((BusinessException) ex).getErrorCode())
-                        .isEqualTo(InvestAccountErrorCode.USER_MAPPING_NOT_FOUND));
+                        .isEqualTo(InvestAccountErrorCode.COMMON_USER_MAPPING_NOT_FOUND));
     }
 
     // -------------------------------------------------------------------------
@@ -458,7 +458,7 @@ class InvestAccountServiceTest {
     }
 
     @Test
-    @DisplayName("getMappingStatus에서 공통 사용자 매핑이 없으면 USER_MAPPING_NOT_FOUND 예외 발생")
+    @DisplayName("getMappingStatus에서 공통 사용자 매핑이 없으면 COMMON_USER_MAPPING_NOT_FOUND 예외 발생")
     void linkAccount_getMappingStatus_mappingNotFound() {
         UUID userUuid = UUID.randomUUID();
         LinkAccountRequest request = new LinkAccountRequest(UUID.randomUUID());
@@ -480,7 +480,47 @@ class InvestAccountServiceTest {
         assertThatThrownBy(() -> investAccountService.linkAccount(userUuid, request))
                 .isInstanceOf(BusinessException.class)
                 .satisfies(ex -> assertThat(((BusinessException) ex).getErrorCode())
-                        .isEqualTo(InvestAccountErrorCode.USER_MAPPING_NOT_FOUND));
+                        .isEqualTo(InvestAccountErrorCode.COMMON_USER_MAPPING_NOT_FOUND));
+    }
+
+    @Test
+    @DisplayName("linkInvestMapping에서 공통 사용자 매핑이 없으면 COMMON_USER_MAPPING_NOT_FOUND 예외 발생")
+    void linkAccount_linkInvestMapping_mappingNotFound() {
+        UUID userUuid = UUID.randomUUID();
+        UUID investAccountUuid = UUID.randomUUID();
+        UUID investUserUuid = UUID.randomUUID();
+        LinkAccountRequest request = new LinkAccountRequest(investAccountUuid);
+
+        MappingStatusResponse mappingStatus = new MappingStatusResponse(new MappingStatusResponse.InvestStatus(false));
+        ApiResponse<MappingStatusResponse> mappingResponse = ApiResponse.of(SuccessStatus.OK, mappingStatus);
+
+        InvestChnAccountSummary accountSummary = mock(InvestChnAccountSummary.class);
+        given(accountSummary.getUserUuid()).willReturn(userUuid);
+        given(accountSummary.getAccountStatus()).willReturn(AccountStatus.ACTIVE);
+        given(accountSummary.getInvestUserUuid()).willReturn(investUserUuid);
+
+        Request dummyRequest = Request.create(
+                Request.HttpMethod.PATCH,
+                "http://common/internal/mappings/users/" + userUuid + "/invest",
+                Collections.emptyMap(),
+                null,
+                new RequestTemplate()
+        );
+        byte[] body = "{\"status\":404,\"code\":\"MAP_404_001\",\"message\":\"고객 매핑 정보를 찾을 수 없습니다.\"}"
+                .getBytes(StandardCharsets.UTF_8);
+        FeignException.NotFound notFoundException = new FeignException.NotFound(
+                "Mapping not found", dummyRequest, body, null
+        );
+
+        given(commonMappingApi.getMappingStatus(userUuid)).willReturn(mappingResponse);
+        given(accountSummaryRepository.findById(investAccountUuid)).willReturn(Optional.of(accountSummary));
+        willThrow(notFoundException).given(commonMappingApi).linkInvestMapping(eq(userUuid), any());
+
+        assertThatThrownBy(() -> investAccountService.linkAccount(userUuid, request))
+                .isInstanceOf(BusinessException.class)
+                .satisfies(ex -> assertThat(((BusinessException) ex).getErrorCode())
+                        .isEqualTo(InvestAccountErrorCode.COMMON_USER_MAPPING_NOT_FOUND))
+                .hasCause(notFoundException);
     }
 
     @Test
