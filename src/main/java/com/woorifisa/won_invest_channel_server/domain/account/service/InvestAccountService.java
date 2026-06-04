@@ -6,6 +6,7 @@ import com.woorifisa.won_invest_channel_server.domain.account.dto.request.Create
 import com.woorifisa.won_invest_channel_server.domain.account.dto.request.CreateInvestAccountRequest;
 import com.woorifisa.won_invest_channel_server.domain.account.dto.request.LinkAccountRequest;
 import com.woorifisa.won_invest_channel_server.domain.account.dto.response.CreateInvestAccountResponse;
+import com.woorifisa.won_invest_channel_server.domain.account.dto.response.InternalInvestAccountsResponse;
 import com.woorifisa.won_invest_channel_server.domain.account.dto.response.LinkAccountResponse;
 import com.woorifisa.won_invest_channel_server.domain.account.exception.code.InvestAccountErrorCode;
 import com.woorifisa.won_invest_channel_server.domain.account.external.CommonMappingApi;
@@ -44,6 +45,16 @@ public class InvestAccountService {
     private final InvestCoreAccountApi investCoreAccountApi;
     private final InvestChnAccountSummaryRepository accountSummaryRepository;
     private final ObjectMapper objectMapper;
+
+    public InternalInvestAccountsResponse getInternalAccounts(UUID userUuid) {
+        List<InternalInvestAccountsResponse.Account> accounts = accountSummaryRepository
+                .findAllByUserUuidOrderByCreatedAtDesc(userUuid)
+                .stream()
+                .map(this::toInternalAccountResponse)
+                .toList();
+
+        return new InternalInvestAccountsResponse(accounts);
+    }
 
     @Transactional
     public LinkAccountResponse linkAccount(UUID userUuid, LinkAccountRequest request) {
@@ -198,6 +209,14 @@ public class InvestAccountService {
                 coreData.accountStatus(),
                 coreData.investConnectedStatus(),
                 coreData.openedAt()
+        );
+    }
+
+    private InternalInvestAccountsResponse.Account toInternalAccountResponse(InvestChnAccountSummary accountSummary) {
+        return new InternalInvestAccountsResponse.Account(
+                accountSummary.getInvestAccountUuid(),
+                accountSummary.getAccountNoDisplay(),
+                accountSummary.getAccountStatus().name()
         );
     }
 
