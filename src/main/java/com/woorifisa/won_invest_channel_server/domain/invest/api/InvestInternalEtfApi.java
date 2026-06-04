@@ -23,22 +23,24 @@ import org.springframework.web.bind.annotation.RestController;
 @RestController
 @RequiredArgsConstructor
 @RequestMapping
-@Tag(name = "Invest ETF", description = "보유 ETF 조회 API")
-public class InvestEtfApi {
+@Tag(name = "Invest Internal ETF", description = "보유 ETF 내부 조회 API")
+public class InvestInternalEtfApi {
 
     private final InvestEtfQueryService investEtfQueryService;
 
     @Operation(
-            summary = "보유 ETF 상세 조회",
-            description = "JWT 인증 후 본인 명의의 ACTIVE 증권계좌에 대해 보유 ETF, 총 평가 금액, 최근 매수 체결 3건을 조회합니다."
+            summary = "보유 ETF 상세 조회 - 내부 API",
+            description = "내부 서비스가 X-Service-ID, X-Internal-Api-Key, X-User-UUID 헤더로 호출하는 보유 ETF 상세 조회 API입니다."
     )
-    @GetMapping("/api/invest/accounts/{accountUuid}/etfs")
-    public ResponseEntity<ApiResponse<InvestEtfHoldingsResponse>> getAccountEtfs(
+    @GetMapping("/internal/invest/accounts/{accountUuid}/etfs")
+    public ResponseEntity<ApiResponse<InvestEtfHoldingsResponse>> getInternalAccountEtfs(
             @AuthenticationPrincipal AuthenticatedUser authenticatedUser,
-            @Parameter(description = "호출 서비스 식별자", required = true)
+            @Parameter(description = "내부 호출 서비스 식별자", required = true)
             @RequestHeader("X-Service-ID") String serviceId,
-            @Parameter(description = "트랜잭션 추적용 ID")
-            @RequestHeader(value = "X-Transaction-ID", required = false) String transactionId,
+            @Parameter(description = "내부 API 인증 키", required = true)
+            @RequestHeader("X-Internal-Api-Key") String internalApiKey,
+            @Parameter(description = "조회 요청 사용자 UUID", required = true)
+            @RequestHeader("X-User-UUID") String userUuid,
             @Parameter(description = "조회할 증권계좌 UUID", required = true)
             @PathVariable UUID accountUuid
     ) {

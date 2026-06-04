@@ -31,7 +31,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 @ActiveProfiles("test")
-@WebMvcTest(controllers = InvestEtfApi.class)
+@WebMvcTest(controllers = {InvestEtfApi.class, InvestInternalEtfApi.class})
 @Import({
         SecurityConfig.class,
         InternalApiAuthFilter.class,
@@ -122,6 +122,37 @@ class InvestEtfApiTest {
                 .andExpect(jsonPath("$.status").value(401))
                 .andExpect(jsonPath("$.code").value("AUTH_401_001"))
                 .andExpect(jsonPath("$.message").value("인증이 필요합니다."));
+    }
+
+    @Test
+    @DisplayName("내부 API 인증 헤더가 유효하면 공통 응답 포맷으로 ETF 조회 결과를 반환한다")
+    void getInternalAccountEtfs_success() throws Exception {
+        given(investEtfQueryService.getAccountEtfs(eq(USER_UUID), eq(ACCOUNT_UUID)))
+                .willReturn(new InvestEtfHoldingsResponse(
+                        new BigDecimal("79420.00"),
+                        new BigDecimal("4820.00"),
+                        new BigDecimal("6.45"),
+                        List.of(new InvestEtfHoldingsResponse.Holding(
+                                1L,
+                                "S&P 500 ETF",
+                                "VOO",
+                                new BigDecimal("0.0235"),
+                                new BigDecimal("375.40"),
+                                new BigDecimal("79420.00"),
+                                new BigDecimal("4820.00"),
+                                new BigDecimal("6.45")
+                        )),
+                        List.of()
+                ));
+
+        mockMvc.perform(get("/internal/invest/accounts/{accountUuid}/etfs", ACCOUNT_UUID)
+                        .header("X-Service-ID", "internal-test-service")
+                        .header("X-Internal-Api-Key", "internal-test-key")
+                        .header("X-User-UUID", USER_UUID.toString()))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.status").value(200))
+                .andExpect(jsonPath("$.code").value("INVEST_200_005"))
+                .andExpect(jsonPath("$.data.holdings[0].ticker").value("VOO"));
     }
 
     private String bearerToken() {
