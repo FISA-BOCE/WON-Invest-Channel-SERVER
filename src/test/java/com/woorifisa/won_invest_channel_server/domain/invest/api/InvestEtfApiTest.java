@@ -10,6 +10,7 @@ import com.woorifisa.won_invest_channel_server.global.security.JwtTokenProvider;
 import com.woorifisa.won_invest_channel_server.global.security.RestAccessDeniedHandler;
 import com.woorifisa.won_invest_channel_server.global.security.RestAuthenticationEntryPoint;
 import java.math.BigDecimal;
+import java.time.LocalDate;
 import java.time.OffsetDateTime;
 import java.util.List;
 import java.util.UUID;
@@ -66,6 +67,7 @@ class InvestEtfApiTest {
     void getAccountEtfs_success() throws Exception {
         given(investEtfQueryService.getAccountEtfs(eq(USER_UUID), eq(ACCOUNT_UUID)))
                 .willReturn(new InvestEtfHoldingsResponse(
+                        LocalDate.of(2026, 6, 4),
                         new BigDecimal("79420.00"),
                         new BigDecimal("4820.00"),
                         new BigDecimal("6.45"),
@@ -95,6 +97,7 @@ class InvestEtfApiTest {
                 .andExpect(jsonPath("$.status").value(200))
                 .andExpect(jsonPath("$.code").value("INVEST_200_005"))
                 .andExpect(jsonPath("$.message").value("보유 ETF 조회가 완료되었습니다."))
+                .andExpect(jsonPath("$.data.baseDate").value("2026-06-04"))
                 .andExpect(jsonPath("$.data.totalEvaluationAmount").value(79420.00))
                 .andExpect(jsonPath("$.data.holdings[0].ticker").value("VOO"))
                 .andExpect(jsonPath("$.data.recentExecutions[0].executionType").value("시장가 체결"));
@@ -129,6 +132,7 @@ class InvestEtfApiTest {
     void getInternalAccountEtfs_success() throws Exception {
         given(investEtfQueryService.getAccountEtfs(eq(USER_UUID), eq(ACCOUNT_UUID)))
                 .willReturn(new InvestEtfHoldingsResponse(
+                        LocalDate.of(2026, 6, 4),
                         new BigDecimal("79420.00"),
                         new BigDecimal("4820.00"),
                         new BigDecimal("6.45"),

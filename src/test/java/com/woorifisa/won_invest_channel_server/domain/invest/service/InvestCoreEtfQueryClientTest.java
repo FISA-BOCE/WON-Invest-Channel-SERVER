@@ -11,6 +11,7 @@ import feign.Request;
 import feign.Response;
 import java.math.BigDecimal;
 import java.nio.charset.StandardCharsets;
+import java.time.LocalDate;
 import java.time.OffsetDateTime;
 import java.util.List;
 import java.util.Map;
@@ -130,6 +131,7 @@ class InvestCoreEtfQueryClientTest {
 
     private InvestEtfHoldingsResponse response() {
         return new InvestEtfHoldingsResponse(
+                LocalDate.of(2026, 6, 4),
                 new BigDecimal("79420.00"),
                 new BigDecimal("4820.00"),
                 new BigDecimal("6.45"),

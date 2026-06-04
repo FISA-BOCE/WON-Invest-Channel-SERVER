@@ -3,8 +3,10 @@ package com.woorifisa.won_invest_channel_server.domain.account.service;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.woorifisa.won_invest_channel_server.domain.account.dto.request.CreateInvestAccountChannelRequest;
 import com.woorifisa.won_invest_channel_server.domain.account.dto.request.LinkAccountRequest;
+import com.woorifisa.won_invest_channel_server.domain.account.dto.request.InternalUpsertInvestAccountSummaryRequest;
 import com.woorifisa.won_invest_channel_server.domain.account.dto.response.CreateInvestAccountResponse;
 import com.woorifisa.won_invest_channel_server.domain.account.dto.response.InternalInvestAccountsResponse;
+import com.woorifisa.won_invest_channel_server.domain.account.dto.response.InternalUpsertInvestAccountSummaryResponse;
 import com.woorifisa.won_invest_channel_server.domain.account.dto.response.LinkAccountResponse;
 import com.woorifisa.won_invest_channel_server.domain.account.exception.code.InvestAccountErrorCode;
 import com.woorifisa.won_invest_channel_server.domain.account.external.CommonMappingApi;
@@ -136,6 +138,57 @@ class InvestAccountServiceTest {
         assertThat(response.accounts()).isEmpty();
     }
 
+    @Test
+    @DisplayName("summary가 없으면 신규 생성한다")
+    void upsertAccountSummary_create() {
+        InternalUpsertInvestAccountSummaryRequest request = new InternalUpsertInvestAccountSummaryRequest(
+                INVEST_USER_UUID,
+                USER_UUID,
+                "123-***-***456",
+                "ACTIVE"
+        );
+        given(accountSummaryRepository.findById(ACCOUNT_UUID)).willReturn(Optional.empty());
+        given(accountSummaryRepository.save(any(InvestChnAccountSummary.class)))
+                .willAnswer(invocation -> invocation.getArgument(0));
+
+        InternalUpsertInvestAccountSummaryResponse response =
+                investAccountService.upsertAccountSummary(ACCOUNT_UUID, request);
+
+        assertThat(response.investAccountUuid()).isEqualTo(ACCOUNT_UUID);
+        assertThat(response.investUserUuid()).isEqualTo(INVEST_USER_UUID);
+        assertThat(response.userUuid()).isEqualTo(USER_UUID);
+        assertThat(response.accountStatus()).isEqualTo("ACTIVE");
+    }
+
+    @Test
+    @DisplayName("summary가 있으면 변경 정보로 update 후 저장한다")
+    void upsertAccountSummary_update() {
+        InvestChnAccountSummary existingAccount = InvestChnAccountSummary.builder()
+                .investAccountUuid(ACCOUNT_UUID)
+                .investUserUuid(UUID.fromString("99999999-9999-9999-9999-999999999999"))
+                .userUuid(UUID.fromString("88888888-8888-8888-8888-888888888888"))
+                .accountNoDisplay("111-***-***111")
+                .accountStatus(AccountStatus.INACTIVE)
+                .build();
+        InternalUpsertInvestAccountSummaryRequest request = new InternalUpsertInvestAccountSummaryRequest(
+                INVEST_USER_UUID,
+                USER_UUID,
+                "123-***-***456",
+                "SUSPENDED"
+        );
+        given(accountSummaryRepository.findById(ACCOUNT_UUID)).willReturn(Optional.of(existingAccount));
+        given(accountSummaryRepository.save(existingAccount)).willReturn(existingAccount);
+
+        InternalUpsertInvestAccountSummaryResponse response =
+                investAccountService.upsertAccountSummary(ACCOUNT_UUID, request);
+
+        assertThat(response.investAccountUuid()).isEqualTo(ACCOUNT_UUID);
+        assertThat(response.investUserUuid()).isEqualTo(INVEST_USER_UUID);
+        assertThat(response.userUuid()).isEqualTo(USER_UUID);
+        assertThat(response.accountNoDisplay()).isEqualTo("123-***-***456");
+        assertThat(response.accountStatus()).isEqualTo("SUSPENDED");
+    }
+
     // -------------------------------------------------------------------------
     // createNewInvestAccount
     // -------------------------------------------------------------------------
@@ -146,6 +199,9 @@ class InvestAccountServiceTest {
         // given
         CreateInvestAccountChannelRequest request = validRequest();
         given(investCoreAccountApi.createNewInvestAccount(eq(USER_UUID), any())).willReturn(coreSuccessResponse());
+        given(accountSummaryRepository.findById(ACCOUNT_UUID)).willReturn(Optional.empty());
+        given(accountSummaryRepository.save(any(InvestChnAccountSummary.class)))
+                .willAnswer(invocation -> invocation.getArgument(0));
 
         // when
         CreateInvestAccountResponse response = investAccountService.createNewInvestAccount(request, USER_UUID);
@@ -391,6 +447,9 @@ class InvestAccountServiceTest {
         // given
         CreateInvestAccountChannelRequest request = validRequest();
         given(investCoreAccountApi.createNewInvestAccount(eq(USER_UUID), any())).willReturn(coreSuccessResponse());
+        given(accountSummaryRepository.findById(ACCOUNT_UUID)).willReturn(Optional.empty());
+        given(accountSummaryRepository.save(any(InvestChnAccountSummary.class)))
+                .willAnswer(invocation -> invocation.getArgument(0));
         FeignException feignException = mock(FeignException.class);
         willThrow(feignException).given(commonMappingApi).linkInvestMapping(eq(USER_UUID), any());
 
@@ -407,6 +466,9 @@ class InvestAccountServiceTest {
     void createNewInvestAccount_linkInvestMapping_mappingNotFound() {
         CreateInvestAccountChannelRequest request = validRequest();
         given(investCoreAccountApi.createNewInvestAccount(eq(USER_UUID), any())).willReturn(coreSuccessResponse());
+        given(accountSummaryRepository.findById(ACCOUNT_UUID)).willReturn(Optional.empty());
+        given(accountSummaryRepository.save(any(InvestChnAccountSummary.class)))
+                .willAnswer(invocation -> invocation.getArgument(0));
 
         Request dummyRequest = Request.create(
                 Request.HttpMethod.PATCH,
