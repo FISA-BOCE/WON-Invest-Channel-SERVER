@@ -38,8 +38,8 @@ public class SecurityConfig {
                         .requestMatchers("/internal/**").permitAll()
                         .requestMatchers("/actuator/**", "/swagger-ui/**", "/v3/api-docs/**").permitAll()
                         .requestMatchers(HttpMethod.POST, "/api/invest/accounts/new", "/api/invest/accounts/link").authenticated()
-                        .requestMatchers(HttpMethod.GET, "/api/invest/accounts/*/etfs").authenticated()
-                        .anyRequest().denyAll()
+                        .requestMatchers(HttpMethod.GET, "/api/invest/etfs/*").authenticated()
+                        .anyRequest().authenticated()
                 )
                 .exceptionHandling(ex -> ex
                         .authenticationEntryPoint(authenticationEntryPoint)
