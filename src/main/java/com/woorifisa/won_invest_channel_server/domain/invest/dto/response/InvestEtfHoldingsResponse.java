@@ -1,7 +1,7 @@
 package com.woorifisa.won_invest_channel_server.domain.invest.dto.response;
 
 import java.math.BigDecimal;
-import java.time.LocalDateTime;
+import java.time.OffsetDateTime;
 import java.util.List;
 
 public record InvestEtfHoldingsResponse(
@@ -25,7 +25,7 @@ public record InvestEtfHoldingsResponse(
     }
 
     public record RecentExecution(
-            LocalDateTime executedAt,
+            OffsetDateTime executedAt,
             String ticker,
             BigDecimal executionQuantity,
             String executionType
