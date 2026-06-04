@@ -7,7 +7,7 @@ import com.woorifisa.won_invest_channel_server.domain.invest.dto.response.Invest
 import com.woorifisa.won_invest_channel_server.domain.invest.exception.code.InvestErrorCode;
 import com.woorifisa.won_invest_channel_server.global.exception.handler.BusinessException;
 import java.math.BigDecimal;
-import java.time.LocalDateTime;
+import java.time.OffsetDateTime;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
@@ -120,16 +120,16 @@ class InvestEtfQueryServiceTest {
                         new BigDecimal("6.45")
                 )),
                 List.of(
-                        execution("2026-05-16T00:00:00", "VOO", "0.0235"),
-                        execution("2026-05-15T00:00:00", "QQQ", "0.0100"),
-                        execution("2026-05-14T00:00:00", "VOO", "0.0050")
+                        execution("2026-05-16T00:00:00+09:00", "VOO", "0.0235"),
+                        execution("2026-05-15T00:00:00+09:00", "QQQ", "0.0100"),
+                        execution("2026-05-14T00:00:00+09:00", "VOO", "0.0050")
                 )
         );
     }
 
     private InvestEtfHoldingsResponse.RecentExecution execution(String executedAt, String ticker, String quantity) {
         return new InvestEtfHoldingsResponse.RecentExecution(
-                LocalDateTime.parse(executedAt),
+                OffsetDateTime.parse(executedAt),
                 ticker,
                 new BigDecimal(quantity),
                 "시장가 체결"
