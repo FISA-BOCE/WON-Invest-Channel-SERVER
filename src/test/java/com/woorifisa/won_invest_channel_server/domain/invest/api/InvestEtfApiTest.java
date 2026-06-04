@@ -112,6 +112,18 @@ class InvestEtfApiTest {
                 .andExpect(jsonPath("$.message").value("인증이 필요합니다."));
     }
 
+    @Test
+    @DisplayName("내부 API 요청에 X-User-UUID가 없으면 401을 반환한다")
+    void getInternalAccountEtfs_missingUserUuidHeader() throws Exception {
+        mockMvc.perform(get("/internal/invest/accounts/{accountUuid}/etfs", ACCOUNT_UUID)
+                        .header("X-Service-ID", "internal-test-service")
+                        .header("X-Internal-Api-Key", "internal-test-key"))
+                .andExpect(status().isUnauthorized())
+                .andExpect(jsonPath("$.status").value(401))
+                .andExpect(jsonPath("$.code").value("AUTH_401_001"))
+                .andExpect(jsonPath("$.message").value("인증이 필요합니다."));
+    }
+
     private String bearerToken() {
         return "Bearer " + jwtTokenProvider.generateAccessToken(USER_UUID, USER_UUID, "jti-test");
     }
