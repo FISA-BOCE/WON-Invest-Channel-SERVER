@@ -4,6 +4,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.woorifisa.won_invest_channel_server.domain.account.dto.request.CreateInvestAccountChannelRequest;
 import com.woorifisa.won_invest_channel_server.domain.account.dto.request.LinkAccountRequest;
 import com.woorifisa.won_invest_channel_server.domain.account.dto.response.CreateInvestAccountResponse;
+import com.woorifisa.won_invest_channel_server.domain.account.dto.response.InternalInvestAccountsResponse;
 import com.woorifisa.won_invest_channel_server.domain.account.dto.response.LinkAccountResponse;
 import com.woorifisa.won_invest_channel_server.domain.account.exception.code.InvestAccountErrorCode;
 import com.woorifisa.won_invest_channel_server.domain.account.external.CommonMappingApi;
@@ -86,6 +87,53 @@ class InvestAccountServiceTest {
                 OPENED_AT
         );
         return ApiResponse.of(SuccessStatus.OK, data);
+    }
+
+    // -------------------------------------------------------------------------
+    // getInternalAccounts
+    // -------------------------------------------------------------------------
+
+    @Test
+    @DisplayName("동일 userUuid의 계좌 목록을 상태값 포함으로 반환한다")
+    void getInternalAccounts_success() {
+        // given
+        InvestChnAccountSummary activeAccount = InvestChnAccountSummary.builder()
+                .investAccountUuid(ACCOUNT_UUID)
+                .investUserUuid(INVEST_USER_UUID)
+                .userUuid(USER_UUID)
+                .accountNoDisplay("123-***-***456")
+                .accountStatus(AccountStatus.ACTIVE)
+                .build();
+        InvestChnAccountSummary suspendedAccount = InvestChnAccountSummary.builder()
+                .investAccountUuid(UUID.fromString("44444444-4444-4444-4444-444444444444"))
+                .investUserUuid(UUID.fromString("55555555-5555-5555-5555-555555555555"))
+                .userUuid(USER_UUID)
+                .accountNoDisplay("987-***-***654")
+                .accountStatus(AccountStatus.SUSPENDED)
+                .build();
+        given(accountSummaryRepository.findAllByUserUuidOrderByCreatedAtDesc(USER_UUID))
+                .willReturn(List.of(activeAccount, suspendedAccount));
+
+        // when
+        InternalInvestAccountsResponse response = investAccountService.getInternalAccounts(USER_UUID);
+
+        // then
+        assertThat(response.accounts()).hasSize(2);
+        assertThat(response.accounts().get(0).investAccountUuid()).isEqualTo(ACCOUNT_UUID);
+        assertThat(response.accounts().get(0).accountNoDisplay()).isEqualTo("123-***-***456");
+        assertThat(response.accounts().get(0).accountStatus()).isEqualTo("ACTIVE");
+        assertThat(response.accounts().get(1).accountStatus()).isEqualTo("SUSPENDED");
+    }
+
+    @Test
+    @DisplayName("계좌가 없으면 빈 배열을 반환한다")
+    void getInternalAccounts_empty() {
+        given(accountSummaryRepository.findAllByUserUuidOrderByCreatedAtDesc(USER_UUID))
+                .willReturn(List.of());
+
+        InternalInvestAccountsResponse response = investAccountService.getInternalAccounts(USER_UUID);
+
+        assertThat(response.accounts()).isEmpty();
     }
 
     // -------------------------------------------------------------------------
