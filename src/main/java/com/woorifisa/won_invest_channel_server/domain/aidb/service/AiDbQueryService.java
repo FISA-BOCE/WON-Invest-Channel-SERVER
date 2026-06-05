@@ -23,8 +23,8 @@ public class AiDbQueryService {
 
     public Object query(AiDbQueryRequest request) {
         return switch (AiDbQueryType.from(request.queryType())) {
-            case MY_ETF_HOLDINGS -> getMyEtfHoldings(request);
-            case MY_ETF_BALANCE_SUMMARY -> getMyEtfBalanceSummary(request);
+            case ETF_LIST -> getMyEtfHoldings(request);
+            case ETF_AMOUNT -> getMyEtfBalanceSummary(request);
         };
     }
 
