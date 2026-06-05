@@ -35,7 +35,7 @@ class InternalAiDbQueryApiTest {
     @Test
     @DisplayName("AI DB 조회 결과를 공통 성공 응답으로 반환한다")
     void query_success() {
-        AiDbQueryRequest request = new AiDbQueryRequest(USER_UUID, "MY_ETF_HOLDINGS");
+        AiDbQueryRequest request = new AiDbQueryRequest(USER_UUID, "ETF_LIST");
         AiDbHoldingListResponse serviceResponse = new AiDbHoldingListResponse(
                 USER_UUID,
                 ACCOUNT_UUID,
@@ -65,7 +65,7 @@ class InternalAiDbQueryApiTest {
     @Test
     @DisplayName("AI DB empty holdings response is returned without ApiResponse wrapping")
     void query_noHoldings() {
-        AiDbQueryRequest request = new AiDbQueryRequest(USER_UUID, "MY_ETF_HOLDINGS");
+        AiDbQueryRequest request = new AiDbQueryRequest(USER_UUID, "ETF_LIST");
         AiDbNoHoldingsResponse serviceResponse = AiDbNoHoldingsResponse.of();
         given(aiDbQueryService.query(request)).willReturn(serviceResponse);
 
