@@ -13,6 +13,7 @@ import com.woorifisa.won_invest_channel_server.global.exception.handler.Business
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Optional;
 import java.util.UUID;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -36,10 +37,10 @@ class AiDbQueryServiceTest {
     private AiDbQueryService aiDbQueryService;
 
     @Test
-    @DisplayName("MY_ETF_HOLDINGS 요청이면 보유 ETF 목록 응답을 생성한다")
+    @DisplayName("MY_ETF_HOLDINGS 요청이면 보유 ETF 목록 응답을 반환한다")
     void query_myEtfHoldings_success() {
-        given(investChnAiSummaryRepository.findHoldingListRowsByUserUuid(USER_UUID.toString()))
-                .willReturn(List.of(holdingListRow(1L, "TIGER500"), holdingListRow(2L, "KODEX200")));
+        given(investChnAiSummaryRepository.findHoldingListResponseByUserUuid(USER_UUID))
+                .willReturn(Optional.of(holdingListResponse()));
 
         Object response = aiDbQueryService.query(new AiDbQueryRequest(USER_UUID, "MY_ETF_HOLDINGS"));
 
@@ -53,10 +54,10 @@ class AiDbQueryServiceTest {
     }
 
     @Test
-    @DisplayName("MY_ETF_BALANCE_SUMMARY 요청이면 AI 요약과 보유 ETF 상세 응답을 생성한다")
+    @DisplayName("MY_ETF_BALANCE_SUMMARY 요청이면 AI 요약 응답을 반환한다")
     void query_myEtfBalanceSummary_success() {
-        given(investChnAiSummaryRepository.findHoldingSummaryRowsByUserUuid(USER_UUID.toString()))
-                .willReturn(List.of(holdingSummaryRow(1L, "TIGER500"), holdingSummaryRow(2L, "KODEX200")));
+        given(investChnAiSummaryRepository.findHoldingSummaryResponseByUserUuid(USER_UUID))
+                .willReturn(Optional.of(holdingSummaryResponse()));
 
         Object response = aiDbQueryService.query(new AiDbQueryRequest(USER_UUID, "MY_ETF_BALANCE_SUMMARY"));
 
@@ -85,8 +86,8 @@ class AiDbQueryServiceTest {
     @Test
     @DisplayName("조회 결과가 없으면 CHAT_404_001 예외를 발생시킨다")
     void query_resultNotFound() {
-        given(investChnAiSummaryRepository.findHoldingListRowsByUserUuid(USER_UUID.toString()))
-                .willReturn(List.of());
+        given(investChnAiSummaryRepository.findHoldingListResponseByUserUuid(USER_UUID))
+                .willReturn(Optional.empty());
 
         assertThatThrownBy(() -> aiDbQueryService.query(new AiDbQueryRequest(USER_UUID, "MY_ETF_HOLDINGS")))
                 .isInstanceOf(BusinessException.class)
@@ -98,7 +99,7 @@ class AiDbQueryServiceTest {
     @DisplayName("DB 조회 오류가 발생하면 CHAT_500_001 예외를 발생시킨다")
     void query_mysqlQueryFailed() {
         DataRetrievalFailureException cause = new DataRetrievalFailureException("query failed");
-        given(investChnAiSummaryRepository.findHoldingSummaryRowsByUserUuid(USER_UUID.toString()))
+        given(investChnAiSummaryRepository.findHoldingSummaryResponseByUserUuid(USER_UUID))
                 .willThrow(cause);
 
         assertThatThrownBy(() -> aiDbQueryService.query(new AiDbQueryRequest(USER_UUID, "MY_ETF_BALANCE_SUMMARY")))
@@ -108,131 +109,66 @@ class AiDbQueryServiceTest {
                         .isEqualTo(AiDbErrorCode.MYSQL_QUERY_FAILED));
     }
 
-    private InvestChnAiSummaryRepository.HoldingListRow holdingListRow(Long etfId, String ticker) {
-        return new InvestChnAiSummaryRepository.HoldingListRow() {
-            @Override
-            public UUID getUserUuid() {
-                return USER_UUID;
-            }
-
-            @Override
-            public UUID getInvestAccountUuid() {
-                return ACCOUNT_UUID;
-            }
-
-            @Override
-            public Long getEtfId() {
-                return etfId;
-            }
-
-            @Override
-            public String getTicker() {
-                return ticker;
-            }
-
-            @Override
-            public String getEtfName() {
-                return ticker + " ETF";
-            }
-
-            @Override
-            public BigDecimal getHoldingQuantity() {
-                return new BigDecimal("1.23456789");
-            }
-
-            @Override
-            public BigDecimal getEvaluationAmount() {
-                return new BigDecimal("123456.7800");
-            }
-
-            @Override
-            public LocalDateTime getLastSyncedAt() {
-                return SYNCED_AT;
-            }
-        };
+    private AiDbHoldingListResponse holdingListResponse() {
+        return new AiDbHoldingListResponse(
+                USER_UUID,
+                ACCOUNT_UUID,
+                2,
+                List.of(
+                        new AiDbHoldingListResponse.Holding(
+                                1L,
+                                "TIGER500",
+                                "TIGER500 ETF",
+                                new BigDecimal("1.23456789"),
+                                new BigDecimal("123456.7800"),
+                                SYNCED_AT
+                        ),
+                        new AiDbHoldingListResponse.Holding(
+                                2L,
+                                "KODEX200",
+                                "KODEX200 ETF",
+                                new BigDecimal("1.23456789"),
+                                new BigDecimal("123456.7800"),
+                                SYNCED_AT
+                        )
+                )
+        );
     }
 
-    private InvestChnAiSummaryRepository.HoldingSummaryRow holdingSummaryRow(Long etfId, String ticker) {
-        return new InvestChnAiSummaryRepository.HoldingSummaryRow() {
-            @Override
-            public UUID getUserUuid() {
-                return USER_UUID;
-            }
-
-            @Override
-            public UUID getInvestAccountUuid() {
-                return ACCOUNT_UUID;
-            }
-
-            @Override
-            public BigDecimal getTotalBuyAmount() {
-                return new BigDecimal("150000.0000");
-            }
-
-            @Override
-            public BigDecimal getTotalEvaluationAmount() {
-                return new BigDecimal("168456.7800");
-            }
-
-            @Override
-            public BigDecimal getTotalProfitLossAmount() {
-                return new BigDecimal("18456.7800");
-            }
-
-            @Override
-            public BigDecimal getTotalProfitLossRate() {
-                return new BigDecimal("0.123045");
-            }
-
-            @Override
-            public LocalDateTime getSummaryLastSyncedAt() {
-                return SYNCED_AT;
-            }
-
-            @Override
-            public Long getEtfId() {
-                return etfId;
-            }
-
-            @Override
-            public String getTicker() {
-                return ticker;
-            }
-
-            @Override
-            public String getEtfName() {
-                return ticker + " ETF";
-            }
-
-            @Override
-            public BigDecimal getHoldingQuantity() {
-                return new BigDecimal("1.23456789");
-            }
-
-            @Override
-            public BigDecimal getAverageBuyPrice() {
-                return new BigDecimal("90000.0000");
-            }
-
-            @Override
-            public BigDecimal getEvaluationAmount() {
-                return new BigDecimal("123456.7800");
-            }
-
-            @Override
-            public BigDecimal getProfitLossAmount() {
-                return new BigDecimal("13456.7800");
-            }
-
-            @Override
-            public BigDecimal getProfitLossRate() {
-                return new BigDecimal("0.122334");
-            }
-
-            @Override
-            public LocalDateTime getHoldingLastSyncedAt() {
-                return SYNCED_AT;
-            }
-        };
+    private AiDbHoldingSummaryResponse holdingSummaryResponse() {
+        return new AiDbHoldingSummaryResponse(
+                USER_UUID,
+                ACCOUNT_UUID,
+                new BigDecimal("150000.0000"),
+                new BigDecimal("168456.7800"),
+                new BigDecimal("18456.7800"),
+                new BigDecimal("0.123045"),
+                2,
+                SYNCED_AT,
+                List.of(
+                        new AiDbHoldingSummaryResponse.Holding(
+                                1L,
+                                "TIGER500",
+                                "TIGER500 ETF",
+                                new BigDecimal("1.23456789"),
+                                new BigDecimal("90000.0000"),
+                                new BigDecimal("123456.7800"),
+                                new BigDecimal("13456.7800"),
+                                new BigDecimal("0.122334"),
+                                SYNCED_AT
+                        ),
+                        new AiDbHoldingSummaryResponse.Holding(
+                                2L,
+                                "KODEX200",
+                                "KODEX200 ETF",
+                                new BigDecimal("1.23456789"),
+                                new BigDecimal("90000.0000"),
+                                new BigDecimal("123456.7800"),
+                                new BigDecimal("13456.7800"),
+                                new BigDecimal("0.122334"),
+                                SYNCED_AT
+                        )
+                )
+        );
     }
 }
