@@ -1,6 +1,7 @@
 package com.woorifisa.won_invest_channel_server.domain.aidb.api;
 
 import com.woorifisa.won_invest_channel_server.domain.aidb.dto.request.AiDbQueryRequest;
+import com.woorifisa.won_invest_channel_server.domain.aidb.dto.response.AiDbNoHoldingsResponse;
 import com.woorifisa.won_invest_channel_server.domain.aidb.service.AiDbQueryService;
 import com.woorifisa.won_invest_channel_server.global.response.ApiResponse;
 import com.woorifisa.won_invest_channel_server.global.response.SuccessStatus;
@@ -28,12 +29,17 @@ public class InternalAiDbQueryApi {
             description = "내부 서비스에서 queryType에 따라 MySQL 투자 데이터를 조회합니다."
     )
     @PostMapping("/internal/invest/db/mysql/query")
-    public ResponseEntity<ApiResponse<Object>> query(
+    public ResponseEntity<Object> query(
             @Parameter(description = "호출 서비스 식별자", required = true)
             @RequestHeader("X-Service-ID") String serviceId,
             @NotNull @Valid @RequestBody(required = true) AiDbQueryRequest request
     ) {
         Object response = aiDbQueryService.query(request);
+        if (response instanceof AiDbNoHoldingsResponse noHoldingsResponse) {
+            return ResponseEntity
+                    .status(SuccessStatus.OK.getHttpStatus())
+                    .body(noHoldingsResponse);
+        }
 
         return ResponseEntity
                 .status(SuccessStatus.OK.getHttpStatus())

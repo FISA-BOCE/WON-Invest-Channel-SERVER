@@ -7,6 +7,7 @@ import static org.mockito.BDDMockito.given;
 import com.woorifisa.won_invest_channel_server.domain.aidb.dto.request.AiDbQueryRequest;
 import com.woorifisa.won_invest_channel_server.domain.aidb.dto.response.AiDbHoldingListResponse;
 import com.woorifisa.won_invest_channel_server.domain.aidb.dto.response.AiDbHoldingSummaryResponse;
+import com.woorifisa.won_invest_channel_server.domain.aidb.dto.response.AiDbNoHoldingsResponse;
 import com.woorifisa.won_invest_channel_server.domain.aidb.exception.code.AiDbErrorCode;
 import com.woorifisa.won_invest_channel_server.domain.aidb.repository.InvestChnAiSummaryRepository;
 import com.woorifisa.won_invest_channel_server.global.exception.handler.BusinessException;
@@ -37,7 +38,7 @@ class AiDbQueryServiceTest {
     private AiDbQueryService aiDbQueryService;
 
     @Test
-    @DisplayName("MY_ETF_HOLDINGS 요청이면 보유 ETF 목록 응답을 반환한다")
+    @DisplayName("MY_ETF_HOLDINGS returns holding list response")
     void query_myEtfHoldings_success() {
         given(investChnAiSummaryRepository.findHoldingListResponseByUserUuid(USER_UUID))
                 .willReturn(Optional.of(holdingListResponse()));
@@ -54,7 +55,23 @@ class AiDbQueryServiceTest {
     }
 
     @Test
-    @DisplayName("MY_ETF_BALANCE_SUMMARY 요청이면 AI 요약 응답을 반환한다")
+    @DisplayName("MY_ETF_HOLDINGS returns empty response when result is empty")
+    void query_myEtfHoldings_emptyResult() {
+        given(investChnAiSummaryRepository.findHoldingListResponseByUserUuid(USER_UUID))
+                .willReturn(Optional.empty());
+
+        Object response = aiDbQueryService.query(new AiDbQueryRequest(USER_UUID, "MY_ETF_HOLDINGS"));
+
+        assertThat(response).isInstanceOf(AiDbNoHoldingsResponse.class);
+        AiDbNoHoldingsResponse result = (AiDbNoHoldingsResponse) response;
+        assertThat(result.status()).isEqualTo(200);
+        assertThat(result.code()).isEqualTo("CHAT_200_001");
+        assertThat(result.message()).isEqualTo("보유한 종목이 존재하지 않습니다.");
+        assertThat(result.data()).isNull();
+    }
+
+    @Test
+    @DisplayName("MY_ETF_BALANCE_SUMMARY returns summary response")
     void query_myEtfBalanceSummary_success() {
         given(investChnAiSummaryRepository.findHoldingSummaryResponseByUserUuid(USER_UUID))
                 .willReturn(Optional.of(holdingSummaryResponse()));
@@ -75,7 +92,19 @@ class AiDbQueryServiceTest {
     }
 
     @Test
-    @DisplayName("지원하지 않는 queryType이면 CHAT_400_003 예외를 발생시킨다")
+    @DisplayName("MY_ETF_BALANCE_SUMMARY throws not found when result is empty")
+    void query_myEtfBalanceSummary_resultNotFound() {
+        given(investChnAiSummaryRepository.findHoldingSummaryResponseByUserUuid(USER_UUID))
+                .willReturn(Optional.empty());
+
+        assertThatThrownBy(() -> aiDbQueryService.query(new AiDbQueryRequest(USER_UUID, "MY_ETF_BALANCE_SUMMARY")))
+                .isInstanceOf(BusinessException.class)
+                .satisfies(ex -> assertThat(((BusinessException) ex).getErrorCode())
+                        .isEqualTo(AiDbErrorCode.QUERY_RESULT_NOT_FOUND));
+    }
+
+    @Test
+    @DisplayName("Unsupported queryType throws CHAT_400_003")
     void query_unsupportedQueryType() {
         assertThatThrownBy(() -> aiDbQueryService.query(new AiDbQueryRequest(USER_UUID, "UNKNOWN")))
                 .isInstanceOf(BusinessException.class)
@@ -84,19 +113,7 @@ class AiDbQueryServiceTest {
     }
 
     @Test
-    @DisplayName("조회 결과가 없으면 CHAT_404_001 예외를 발생시킨다")
-    void query_resultNotFound() {
-        given(investChnAiSummaryRepository.findHoldingListResponseByUserUuid(USER_UUID))
-                .willReturn(Optional.empty());
-
-        assertThatThrownBy(() -> aiDbQueryService.query(new AiDbQueryRequest(USER_UUID, "MY_ETF_HOLDINGS")))
-                .isInstanceOf(BusinessException.class)
-                .satisfies(ex -> assertThat(((BusinessException) ex).getErrorCode())
-                        .isEqualTo(AiDbErrorCode.QUERY_RESULT_NOT_FOUND));
-    }
-
-    @Test
-    @DisplayName("DB 조회 오류가 발생하면 CHAT_500_001 예외를 발생시킨다")
+    @DisplayName("DataAccessException is converted to CHAT_500_001")
     void query_mysqlQueryFailed() {
         DataRetrievalFailureException cause = new DataRetrievalFailureException("query failed");
         given(investChnAiSummaryRepository.findHoldingSummaryResponseByUserUuid(USER_UUID))
