@@ -4,6 +4,7 @@ import com.woorifisa.won_invest_channel_server.domain.aidb.dto.request.AiDbQuery
 import com.woorifisa.won_invest_channel_server.domain.aidb.dto.request.AiDbQueryType;
 import com.woorifisa.won_invest_channel_server.domain.aidb.dto.response.AiDbHoldingListResponse;
 import com.woorifisa.won_invest_channel_server.domain.aidb.dto.response.AiDbHoldingSummaryResponse;
+import com.woorifisa.won_invest_channel_server.domain.aidb.dto.response.AiDbNoHoldingsResponse;
 import com.woorifisa.won_invest_channel_server.domain.aidb.exception.code.AiDbErrorCode;
 import com.woorifisa.won_invest_channel_server.domain.aidb.repository.InvestChnAiSummaryRepository;
 import com.woorifisa.won_invest_channel_server.global.exception.handler.BusinessException;
@@ -26,10 +27,11 @@ public class AiDbQueryService {
         };
     }
 
-    private AiDbHoldingListResponse getMyEtfHoldings(AiDbQueryRequest request) {
+    private Object getMyEtfHoldings(AiDbQueryRequest request) {
         try {
             return investChnAiSummaryRepository.findHoldingListResponseByUserUuid(request.userUuid())
-                    .orElseThrow(() -> new BusinessException(AiDbErrorCode.QUERY_RESULT_NOT_FOUND));
+                    .map(response -> (Object) response)
+                    .orElseGet(AiDbNoHoldingsResponse::of);
         } catch (DataAccessException e) {
             throw new BusinessException(AiDbErrorCode.MYSQL_QUERY_FAILED, e);
         }

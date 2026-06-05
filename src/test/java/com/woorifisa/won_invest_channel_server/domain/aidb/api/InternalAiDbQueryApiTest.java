@@ -5,6 +5,7 @@ import static org.mockito.BDDMockito.given;
 
 import com.woorifisa.won_invest_channel_server.domain.aidb.dto.request.AiDbQueryRequest;
 import com.woorifisa.won_invest_channel_server.domain.aidb.dto.response.AiDbHoldingListResponse;
+import com.woorifisa.won_invest_channel_server.domain.aidb.dto.response.AiDbNoHoldingsResponse;
 import com.woorifisa.won_invest_channel_server.domain.aidb.service.AiDbQueryService;
 import com.woorifisa.won_invest_channel_server.global.response.ApiResponse;
 import java.math.BigDecimal;
@@ -50,13 +51,28 @@ class InternalAiDbQueryApiTest {
         );
         given(aiDbQueryService.query(request)).willReturn(serviceResponse);
 
-        ResponseEntity<ApiResponse<Object>> response =
+        ResponseEntity<Object> response =
                 internalAiDbQueryApi.query("ai-service", request);
 
         assertThat(response.getStatusCode().value()).isEqualTo(200);
-        assertThat(response.getBody()).isNotNull();
-        assertThat(response.getBody().status()).isEqualTo(200);
-        assertThat(response.getBody().code()).isEqualTo("COM_200_001");
-        assertThat(response.getBody().data()).isEqualTo(serviceResponse);
+        assertThat(response.getBody()).isInstanceOf(ApiResponse.class);
+        ApiResponse<?> body = (ApiResponse<?>) response.getBody();
+        assertThat(body.status()).isEqualTo(200);
+        assertThat(body.code()).isEqualTo("COM_200_001");
+        assertThat(body.data()).isEqualTo(serviceResponse);
+    }
+
+    @Test
+    @DisplayName("AI DB empty holdings response is returned without ApiResponse wrapping")
+    void query_noHoldings() {
+        AiDbQueryRequest request = new AiDbQueryRequest(USER_UUID, "MY_ETF_HOLDINGS");
+        AiDbNoHoldingsResponse serviceResponse = AiDbNoHoldingsResponse.of();
+        given(aiDbQueryService.query(request)).willReturn(serviceResponse);
+
+        ResponseEntity<Object> response =
+                internalAiDbQueryApi.query("ai-service", request);
+
+        assertThat(response.getStatusCode().value()).isEqualTo(200);
+        assertThat(response.getBody()).isEqualTo(serviceResponse);
     }
 }
