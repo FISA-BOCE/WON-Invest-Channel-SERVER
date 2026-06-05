@@ -23,6 +23,7 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.dao.DataRetrievalFailureException;
+import org.springframework.jdbc.CannotGetJdbcConnectionException;
 
 @ExtendWith(MockitoExtension.class)
 class AiDbQueryServiceTest {
@@ -124,6 +125,20 @@ class AiDbQueryServiceTest {
                 .hasCause(cause)
                 .satisfies(ex -> assertThat(((BusinessException) ex).getErrorCode())
                         .isEqualTo(AiDbErrorCode.MYSQL_QUERY_FAILED));
+    }
+
+    @Test
+    @DisplayName("CannotGetJdbcConnectionException is converted to CHAT_503_001")
+    void query_mysqlConnectionFailed() {
+        CannotGetJdbcConnectionException cause = new CannotGetJdbcConnectionException("connection failed");
+        given(investChnAiSummaryRepository.findHoldingListResponseByUserUuid(USER_UUID))
+                .willThrow(cause);
+
+        assertThatThrownBy(() -> aiDbQueryService.query(new AiDbQueryRequest(USER_UUID, "MY_ETF_HOLDINGS")))
+                .isInstanceOf(BusinessException.class)
+                .hasCause(cause)
+                .satisfies(ex -> assertThat(((BusinessException) ex).getErrorCode())
+                        .isEqualTo(AiDbErrorCode.MYSQL_CONNECTION_FAILED));
     }
 
     private AiDbHoldingListResponse holdingListResponse() {

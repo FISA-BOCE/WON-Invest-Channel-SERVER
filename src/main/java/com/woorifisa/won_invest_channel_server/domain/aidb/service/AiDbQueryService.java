@@ -10,6 +10,7 @@ import com.woorifisa.won_invest_channel_server.domain.aidb.repository.InvestChnA
 import com.woorifisa.won_invest_channel_server.global.exception.handler.BusinessException;
 import lombok.RequiredArgsConstructor;
 import org.springframework.dao.DataAccessException;
+import org.springframework.jdbc.CannotGetJdbcConnectionException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -32,6 +33,8 @@ public class AiDbQueryService {
             return investChnAiSummaryRepository.findHoldingListResponseByUserUuid(request.userUuid())
                     .map(response -> (Object) response)
                     .orElseGet(AiDbNoHoldingsResponse::of);
+        } catch (CannotGetJdbcConnectionException e) {
+            throw new BusinessException(AiDbErrorCode.MYSQL_CONNECTION_FAILED, e);
         } catch (DataAccessException e) {
             throw new BusinessException(AiDbErrorCode.MYSQL_QUERY_FAILED, e);
         }
@@ -41,6 +44,8 @@ public class AiDbQueryService {
         try {
             return investChnAiSummaryRepository.findHoldingSummaryResponseByUserUuid(request.userUuid())
                     .orElseThrow(() -> new BusinessException(AiDbErrorCode.QUERY_RESULT_NOT_FOUND));
+        } catch (CannotGetJdbcConnectionException e) {
+            throw new BusinessException(AiDbErrorCode.MYSQL_CONNECTION_FAILED, e);
         } catch (DataAccessException e) {
             throw new BusinessException(AiDbErrorCode.MYSQL_QUERY_FAILED, e);
         }
