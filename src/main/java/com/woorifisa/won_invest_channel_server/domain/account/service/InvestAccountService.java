@@ -29,6 +29,7 @@ import feign.FeignException;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
@@ -65,25 +66,9 @@ public class InvestAccountService {
     ) {
         AccountStatus accountStatus = AccountStatus.valueOf(request.accountStatus());
 
-        InvestChnAccountSummary accountSummary = accountSummaryRepository.findById(investAccountUuid)
-                .map(existingAccount -> {
-                    existingAccount.updateSummary(
-                            request.investUserUuid(),
-                            request.userUuid(),
-                            request.accountNoDisplay(),
-                            accountStatus
-                    );
-                    return existingAccount;
-                })
-                .orElseGet(() -> InvestChnAccountSummary.builder()
-                        .investAccountUuid(investAccountUuid)
-                        .investUserUuid(request.investUserUuid())
-                        .userUuid(request.userUuid())
-                        .accountNoDisplay(request.accountNoDisplay())
-                        .accountStatus(accountStatus)
-                        .build());
-
-        InvestChnAccountSummary savedAccountSummary = accountSummaryRepository.save(accountSummary);
+        InvestChnAccountSummary savedAccountSummary = accountSummaryRepository.findById(investAccountUuid)
+                .map(existingAccount -> saveUpdatedSummary(existingAccount, request.accountNoDisplay(), accountStatus))
+                .orElseGet(() -> saveNewOrRetrySummary(investAccountUuid, request, accountStatus));
 
         return new InternalUpsertInvestAccountSummaryResponse(
                 savedAccountSummary.getInvestAccountUuid(),
@@ -92,6 +77,37 @@ public class InvestAccountService {
                 savedAccountSummary.getAccountNoDisplay(),
                 savedAccountSummary.getAccountStatus().name()
         );
+    }
+
+    private InvestChnAccountSummary saveUpdatedSummary(
+            InvestChnAccountSummary existingAccount,
+            String accountNoDisplay,
+            AccountStatus accountStatus
+    ) {
+        existingAccount.updateSummary(accountNoDisplay, accountStatus);
+        return accountSummaryRepository.save(existingAccount);
+    }
+
+    private InvestChnAccountSummary saveNewOrRetrySummary(
+            UUID investAccountUuid,
+            InternalUpsertInvestAccountSummaryRequest request,
+            AccountStatus accountStatus
+    ) {
+        InvestChnAccountSummary newAccountSummary = InvestChnAccountSummary.builder()
+                .investAccountUuid(investAccountUuid)
+                .investUserUuid(request.investUserUuid())
+                .userUuid(request.userUuid())
+                .accountNoDisplay(request.accountNoDisplay())
+                .accountStatus(accountStatus)
+                .build();
+
+        try {
+            return accountSummaryRepository.save(newAccountSummary);
+        } catch (DataIntegrityViolationException e) {
+            InvestChnAccountSummary existingAccount = accountSummaryRepository.findById(investAccountUuid)
+                    .orElseThrow(() -> e);
+            return saveUpdatedSummary(existingAccount, request.accountNoDisplay(), accountStatus);
+        }
     }
 
     @Transactional
