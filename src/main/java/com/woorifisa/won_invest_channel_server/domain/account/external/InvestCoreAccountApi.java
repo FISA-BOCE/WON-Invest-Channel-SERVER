@@ -11,7 +11,7 @@ import org.springframework.web.bind.annotation.RequestHeader;
 
 import java.util.UUID;
 
-@FeignClient(name = "invest-core", url = "${feign.invest-core.url}", configuration = FeignConfig.class)
+@FeignClient(name = "invest-core", url = "${internal.services.invest-core.base-url}", configuration = FeignConfig.class)
 public interface InvestCoreAccountApi {
 
     @PostMapping("/internal/invest/accounts/new")

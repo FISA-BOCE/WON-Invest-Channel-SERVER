@@ -30,9 +30,9 @@ public class CoreEtfProductApi {
 
     public CoreEtfProductApi(
             RestClient.Builder restClientBuilder,
-            @Value("${external.core.base-url:http://localhost:8081}") String coreBaseUrl,
-            @Value("${external.core.service-id:won-channel}") String serviceId,
-            @Value("${external.core.internal-api-key:}") String internalApiKey
+            @Value("${internal.services.invest-core.base-url}") String coreBaseUrl,
+            @Value("${internal.service-id}") String serviceId,
+            @Value("${internal.api-key}") String internalApiKey
     ) {
         this.restClient = restClientBuilder
                 .baseUrl(coreBaseUrl)

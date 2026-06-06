@@ -16,8 +16,8 @@ public class FeignConfig {
     private final String internalApiKey;
 
     public FeignConfig(
-            @Value("${internal.channel.service-id}") String serviceId,
-            @Value("${internal.channel.api-key}") String internalApiKey
+            @Value("${internal.service-id}") String serviceId,
+            @Value("${internal.api-key}") String internalApiKey
     ) {
         this.serviceId = normalize(serviceId);
         this.internalApiKey = normalize(internalApiKey);
@@ -39,7 +39,7 @@ public class FeignConfig {
 
     private void validateInternalAuthProperties() {
         if (!hasText(serviceId) || !hasText(internalApiKey)) {
-            throw new IllegalStateException("internal.channel.service-id and internal.channel.api-key must not be blank.");
+            throw new IllegalStateException("internal.service-id and internal.api-key must not be blank.");
         }
     }
 
