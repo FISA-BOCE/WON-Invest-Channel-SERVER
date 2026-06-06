@@ -24,6 +24,7 @@ import com.woorifisa.won_invest_channel_server.global.response.SuccessStatus;
 import feign.FeignException;
 import feign.Request;
 import feign.RequestTemplate;
+import jakarta.persistence.EntityManager;
 import org.springframework.dao.DataIntegrityViolationException;
 
 import java.nio.charset.StandardCharsets;
@@ -59,6 +60,7 @@ class InvestAccountServiceTest {
     @Mock private InvestCoreAccountApi investCoreAccountApi;
     @Mock private CommonMappingApi commonMappingApi;
     @Mock private InvestChnAccountSummaryRepository accountSummaryRepository;
+    @Mock private EntityManager entityManager;
     @Spy private ObjectMapper objectMapper = new ObjectMapper();
 
     @InjectMocks
