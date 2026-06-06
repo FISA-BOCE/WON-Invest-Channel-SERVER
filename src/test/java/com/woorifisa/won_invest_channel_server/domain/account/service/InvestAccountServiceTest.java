@@ -184,8 +184,10 @@ class InvestAccountServiceTest {
                 investAccountService.upsertAccountSummary(ACCOUNT_UUID, request);
 
         assertThat(response.investAccountUuid()).isEqualTo(ACCOUNT_UUID);
-        assertThat(response.investUserUuid()).isEqualTo(INVEST_USER_UUID);
-        assertThat(response.userUuid()).isEqualTo(USER_UUID);
+        assertThat(response.investUserUuid())
+                .isEqualTo(UUID.fromString("99999999-9999-9999-9999-999999999999"));
+        assertThat(response.userUuid())
+                .isEqualTo(UUID.fromString("88888888-8888-8888-8888-888888888888"));
         assertThat(response.accountNoDisplay()).isEqualTo("123-***-***456");
         assertThat(response.accountStatus()).isEqualTo("SUSPENDED");
     }
