@@ -19,6 +19,10 @@ public record SweepRequestConsumerProperties(
         int waitTimeSeconds,
 
         @Min(3)
-        long processingTimeoutSeconds
+        long processingTimeoutSeconds,
+
+        @Min(1)
+        @Max(64)
+        int workerCount
 ) {
 }
