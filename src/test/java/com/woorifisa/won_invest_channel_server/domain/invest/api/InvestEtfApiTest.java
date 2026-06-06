@@ -95,7 +95,7 @@ class InvestEtfApiTest {
                 .header(HttpHeaders.AUTHORIZATION, bearerToken()))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.status").value(200))
-                .andExpect(jsonPath("$.code").value("INVEST_200_005"))
+                .andExpect(jsonPath("$.code").value("INVEST_200_007"))
                 .andExpect(jsonPath("$.message").value("보유 ETF 조회가 완료되었습니다."))
                 .andExpect(jsonPath("$.data.baseDate").value("2026-06-04"))
                 .andExpect(jsonPath("$.data.totalEvaluationAmount").value(79420.00))
@@ -155,7 +155,7 @@ class InvestEtfApiTest {
                         .header("X-User-UUID", USER_UUID.toString()))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.status").value(200))
-                .andExpect(jsonPath("$.code").value("INVEST_200_005"))
+                .andExpect(jsonPath("$.code").value("INVEST_200_007"))
                 .andExpect(jsonPath("$.data.holdings[0].ticker").value("VOO"));
     }
 
