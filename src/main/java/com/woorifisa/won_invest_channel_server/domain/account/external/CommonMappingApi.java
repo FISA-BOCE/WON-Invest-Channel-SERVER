@@ -12,7 +12,7 @@ import org.springframework.web.bind.annotation.RequestBody;
 
 import java.util.UUID;
 
-@FeignClient(name = "common-mapping-api", url = "${feign.common-server-url}", configuration = FeignConfig.class)
+@FeignClient(name = "common-mapping-api", url = "${internal.services.common.base-url}", configuration = FeignConfig.class)
 public interface CommonMappingApi {
 
     @GetMapping("/internal/mappings/users/{userUuid}")

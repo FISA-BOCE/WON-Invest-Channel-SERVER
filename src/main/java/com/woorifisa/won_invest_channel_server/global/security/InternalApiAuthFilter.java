@@ -34,8 +34,8 @@ public class InternalApiAuthFilter extends OncePerRequestFilter {
 
     public InternalApiAuthFilter(
             ObjectMapper objectMapper,
-            @Value("${internal.channel.allowed-service-id:}") String expectedServiceId,
-            @Value("${internal.channel.api-key:}") String expectedInternalApiKey
+            @Value("${internal.allowed-service-id:}") String expectedServiceId,
+            @Value("${internal.api-key:}") String expectedInternalApiKey
     ) {
         this.objectMapper = objectMapper;
         this.expectedServiceId = normalize(expectedServiceId);

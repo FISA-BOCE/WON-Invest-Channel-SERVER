@@ -11,7 +11,7 @@ import org.springframework.web.bind.annotation.RequestHeader;
 
 @FeignClient(
         name = "invest-core-etf-query-api",
-        url = "${feign.invest-core.url}",
+        url = "${internal.services.invest-core.base-url}",
         configuration = FeignConfig.class
 )
 public interface InvestCoreEtfQueryApi {
