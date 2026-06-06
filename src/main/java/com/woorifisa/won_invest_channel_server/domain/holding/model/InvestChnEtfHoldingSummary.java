@@ -22,6 +22,7 @@ import java.util.UUID;
 
 @Entity
 @Getter
+@SuppressWarnings("PMD.RedundantFieldInitializer")
 @Table(
         name = "invest_chn_etf_holding_summary",
         uniqueConstraints = {
@@ -67,6 +68,7 @@ public class InvestChnEtfHoldingSummary extends BaseTimeEntity {
     @Column(name = "etf_name", nullable = false, length = 100)
     private String etfName;
 
+    // JPA 생성 경로에서도 null-safe 기본값을 유지하고, builder에서는 defaultZero(...)로 명시적으로 덮어쓴다.
     @Column(name = "holding_quantity", nullable = false, precision = 18, scale = 8)
     private BigDecimal holdingQuantity = BigDecimal.ZERO;
 
