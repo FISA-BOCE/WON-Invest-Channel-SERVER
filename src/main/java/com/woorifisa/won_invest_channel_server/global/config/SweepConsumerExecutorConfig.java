@@ -3,11 +3,9 @@ package com.woorifisa.won_invest_channel_server.global.config;
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.scheduling.concurrent.ThreadPoolTaskExecutor;
 
-import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.ThreadPoolExecutor;
-import java.util.concurrent.TimeUnit;
-import java.util.concurrent.atomic.AtomicInteger;
 
 @Configuration
 @RequiredArgsConstructor
@@ -15,24 +13,20 @@ public class SweepConsumerExecutorConfig {
 
     private final SweepRequestConsumerProperties properties;
 
-    @Bean(name = "sweepRequestConsumerExecutor", destroyMethod = "shutdown")
-    public ThreadPoolExecutor sweepRequestConsumerExecutor() {
+    @Bean(name = "sweepRequestConsumerExecutor")
+    public ThreadPoolTaskExecutor sweepRequestConsumerExecutor() {
         int workerCount = properties.workerCount();
-        AtomicInteger sequence = new AtomicInteger(1);
 
-        return new ThreadPoolExecutor(
-                workerCount,
-                workerCount,
-                0L,
-                TimeUnit.MILLISECONDS,
-                new ArrayBlockingQueue<>(workerCount * 4),
-                runnable -> {
-                    Thread thread = new Thread(runnable);
-                    thread.setName("sweep-request-consumer-" + sequence.getAndIncrement());
-                    thread.setDaemon(true);
-                    return thread;
-                },
-                new ThreadPoolExecutor.CallerRunsPolicy()
-        );
+        ThreadPoolTaskExecutor executor = new ThreadPoolTaskExecutor();
+        executor.setCorePoolSize(workerCount);
+        executor.setMaxPoolSize(workerCount);
+        executor.setQueueCapacity(workerCount * 4);
+        executor.setThreadNamePrefix("sweep-request-consumer-");
+        executor.setRejectedExecutionHandler(new ThreadPoolExecutor.CallerRunsPolicy());
+        executor.setWaitForTasksToCompleteOnShutdown(true);
+        executor.setAwaitTerminationSeconds(30);
+        executor.initialize();
+
+        return executor;
     }
 }
