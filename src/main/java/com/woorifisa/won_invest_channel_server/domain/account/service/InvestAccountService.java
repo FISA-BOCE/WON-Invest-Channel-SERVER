@@ -26,6 +26,7 @@ import com.woorifisa.won_invest_channel_server.global.exception.handler.Business
 import com.woorifisa.won_invest_channel_server.global.response.ApiResponse;
 import com.woorifisa.won_invest_channel_server.global.response.ErrorResponse;
 import feign.FeignException;
+import jakarta.persistence.EntityManager;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -48,6 +49,7 @@ public class InvestAccountService {
     private final InvestCoreAccountApi investCoreAccountApi;
     private final InvestChnAccountSummaryRepository accountSummaryRepository;
     private final ObjectMapper objectMapper;
+    private final EntityManager entityManager;
 
     public InternalInvestAccountsResponse getInternalAccounts(UUID userUuid) {
         List<InternalInvestAccountsResponse.Account> accounts = accountSummaryRepository
@@ -104,6 +106,7 @@ public class InvestAccountService {
         try {
             return accountSummaryRepository.save(newAccountSummary);
         } catch (DataIntegrityViolationException e) {
+            entityManager.clear();
             InvestChnAccountSummary existingAccount = accountSummaryRepository.findById(investAccountUuid)
                     .orElseThrow(() -> e);
             return saveUpdatedSummary(existingAccount, request.accountNoDisplay(), accountStatus);
