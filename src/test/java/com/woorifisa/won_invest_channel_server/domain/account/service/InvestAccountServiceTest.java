@@ -24,6 +24,7 @@ import com.woorifisa.won_invest_channel_server.global.response.SuccessStatus;
 import feign.FeignException;
 import feign.Request;
 import feign.RequestTemplate;
+import org.springframework.dao.DataIntegrityViolationException;
 
 import java.nio.charset.StandardCharsets;
 import org.junit.jupiter.api.DisplayName;
@@ -187,6 +188,37 @@ class InvestAccountServiceTest {
         assertThat(response.userUuid()).isEqualTo(USER_UUID);
         assertThat(response.accountNoDisplay()).isEqualTo("123-***-***456");
         assertThat(response.accountStatus()).isEqualTo("SUSPENDED");
+    }
+
+    @Test
+    @DisplayName("summary 신규 저장 중 중복키가 발생하면 재조회 후 update 저장한다")
+    void upsertAccountSummary_duplicateKey_retryWithUpdate() {
+        InvestChnAccountSummary existingAccount = InvestChnAccountSummary.builder()
+                .investAccountUuid(ACCOUNT_UUID)
+                .investUserUuid(INVEST_USER_UUID)
+                .userUuid(USER_UUID)
+                .accountNoDisplay("111-***-***111")
+                .accountStatus(AccountStatus.INACTIVE)
+                .build();
+        InternalUpsertInvestAccountSummaryRequest request = new InternalUpsertInvestAccountSummaryRequest(
+                INVEST_USER_UUID,
+                USER_UUID,
+                "123-***-***456",
+                "ACTIVE"
+        );
+        given(accountSummaryRepository.findById(ACCOUNT_UUID))
+                .willReturn(Optional.empty())
+                .willReturn(Optional.of(existingAccount));
+        given(accountSummaryRepository.save(any(InvestChnAccountSummary.class)))
+                .willThrow(new DataIntegrityViolationException("duplicate"))
+                .willReturn(existingAccount);
+
+        InternalUpsertInvestAccountSummaryResponse response =
+                investAccountService.upsertAccountSummary(ACCOUNT_UUID, request);
+
+        assertThat(response.investAccountUuid()).isEqualTo(ACCOUNT_UUID);
+        assertThat(response.accountNoDisplay()).isEqualTo("123-***-***456");
+        assertThat(response.accountStatus()).isEqualTo("ACTIVE");
     }
 
     // -------------------------------------------------------------------------
