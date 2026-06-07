@@ -7,7 +7,7 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
 @Configuration
-public class FeignConfig {
+public class InternalFeignConfig {
 
     private static final String SERVICE_ID_HEADER = "X-Service-ID";
     private static final String INTERNAL_API_KEY_HEADER = "X-Internal-Api-Key";
@@ -15,9 +15,9 @@ public class FeignConfig {
     private final String serviceId;
     private final String internalApiKey;
 
-    public FeignConfig(
-            @Value("${internal.channel.service-id}") String serviceId,
-            @Value("${internal.channel.api-key}") String internalApiKey
+    public InternalFeignConfig(
+            @Value("${internal.service-id}") String serviceId,
+            @Value("${internal.api-key}") String internalApiKey
     ) {
         this.serviceId = normalize(serviceId);
         this.internalApiKey = normalize(internalApiKey);
@@ -39,7 +39,7 @@ public class FeignConfig {
 
     private void validateInternalAuthProperties() {
         if (!hasText(serviceId) || !hasText(internalApiKey)) {
-            throw new IllegalStateException("internal.channel.service-id and internal.channel.api-key must not be blank.");
+            throw new IllegalStateException("internal.service-id and internal.api-key must not be blank.");
         }
     }
 

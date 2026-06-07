@@ -33,7 +33,7 @@ public class InvestAccountApi {
     @PostMapping("/new")
     public ResponseEntity<ApiResponse<CreateInvestAccountResponse>> createInvestAccount(
             @AuthenticationPrincipal AuthenticatedUser authenticatedUser,
-        @Valid @RequestBody CreateInvestAccountChannelRequest request
+            @Valid @RequestBody CreateInvestAccountChannelRequest request
     ) {
         if (authenticatedUser == null) {
             throw new BusinessException(AuthErrorCode.AUTHENTICATION_REQUIRED);
@@ -49,7 +49,7 @@ public class InvestAccountApi {
     @PostMapping("/link")
     public ResponseEntity<ApiResponse<LinkAccountResponse>> linkAccount(
             @AuthenticationPrincipal AuthenticatedUser authenticatedUser,
-        @Valid @RequestBody LinkAccountRequest request
+            @Valid @RequestBody LinkAccountRequest request
     ) {
         if (authenticatedUser == null) {
             throw new BusinessException(AuthErrorCode.AUTHENTICATION_REQUIRED);

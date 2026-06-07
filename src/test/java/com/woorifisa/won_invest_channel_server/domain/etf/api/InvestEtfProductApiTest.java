@@ -49,7 +49,6 @@ class InvestEtfProductApiTest {
         ResponseEntity<ApiResponse<InvestEtfProductDetailResponse>> response =
                 investEtfProductApi.getEtfProductDetail(
                         new AuthenticatedUser(USER_UUID, USER_UUID, "jti-test"),
-                        "WOORI-FISA-APP-01",
                         "TX-20260604-ETF01",
                         1L
                 );
@@ -65,7 +64,6 @@ class InvestEtfProductApiTest {
     void getEtfProductDetail_unauthorized() {
         assertThatThrownBy(() -> investEtfProductApi.getEtfProductDetail(
                 null,
-                "WOORI-FISA-APP-01",
                 "TX-20260604-ETF01",
                 1L
         ))

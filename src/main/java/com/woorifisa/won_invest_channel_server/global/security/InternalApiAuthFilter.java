@@ -9,12 +9,16 @@ import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
+import java.security.MessageDigest;
 import java.util.Collections;
+import java.util.Set;
 import java.util.UUID;
+import java.util.stream.Collectors;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.MediaType;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Component;
 import org.springframework.web.filter.OncePerRequestFilter;
@@ -29,22 +33,23 @@ public class InternalApiAuthFilter extends OncePerRequestFilter {
     private static final String USER_UUID_HEADER = "X-User-UUID";
 
     private final ObjectMapper objectMapper;
-    private final String expectedServiceId;
+    private final Set<String> allowedServiceIds;
     private final String expectedInternalApiKey;
 
     public InternalApiAuthFilter(
             ObjectMapper objectMapper,
-            @Value("${internal.channel.allowed-service-id:}") String expectedServiceId,
-            @Value("${internal.channel.api-key:}") String expectedInternalApiKey
+            @Value("${internal.allowed-service-ids:}") String allowedServiceIds,
+            @Value("${internal.api-key:}") String expectedInternalApiKey
     ) {
         this.objectMapper = objectMapper;
-        this.expectedServiceId = normalize(expectedServiceId);
+        this.allowedServiceIds = parseAllowedServiceIds(allowedServiceIds);
         this.expectedInternalApiKey = normalize(expectedInternalApiKey);
     }
 
     @Override
     protected boolean shouldNotFilter(HttpServletRequest request) {
-        return !request.getRequestURI().startsWith(INTERNAL_PATH_PREFIX);
+        String uri = request.getRequestURI();
+        return !(uri.equals("/internal") || uri.startsWith(INTERNAL_PATH_PREFIX));
     }
 
     @Override
@@ -53,7 +58,7 @@ public class InternalApiAuthFilter extends OncePerRequestFilter {
             HttpServletResponse response,
             FilterChain filterChain
     ) throws ServletException, IOException {
-        if (!hasText(expectedServiceId) || !hasText(expectedInternalApiKey)) {
+        if (allowedServiceIds.isEmpty() || !hasText(expectedInternalApiKey)) {
             log.error("Channel 내부 API 인증 설정이 누락되었습니다. uri={}", request.getRequestURI());
             writeUnauthorizedResponse(response);
             return;
@@ -62,30 +67,40 @@ public class InternalApiAuthFilter extends OncePerRequestFilter {
         String serviceId = normalize(request.getHeader(SERVICE_ID_HEADER));
         String internalApiKey = normalize(request.getHeader(INTERNAL_API_KEY_HEADER));
 
-        if (!expectedServiceId.equals(serviceId) || !expectedInternalApiKey.equals(internalApiKey)) {
+        if (!allowedServiceIds.contains(serviceId) || !constantTimeEquals(expectedInternalApiKey, internalApiKey)) {
             log.warn("내부 API 인증 실패. uri={}, serviceId={}", request.getRequestURI(), serviceId);
             writeUnauthorizedResponse(response);
             return;
         }
 
         String userUuidHeader = normalize(request.getHeader(USER_UUID_HEADER));
-        if (!hasText(userUuidHeader)) {
+        if (requiresUserContext(request.getRequestURI()) && !hasText(userUuidHeader)) {
             log.warn("내부 API 사용자 식별 헤더가 올바르지 않습니다. uri={}, userUuid={}", request.getRequestURI(), userUuidHeader);
             writeUnauthorizedResponse(response);
             return;
         }
 
-        try {
-            UUID userUuid = UUID.fromString(userUuidHeader);
-            AuthenticatedUser authenticatedUser = new AuthenticatedUser(userUuid, userUuid, "internal");
-            UsernamePasswordAuthenticationToken authentication =
-                    new UsernamePasswordAuthenticationToken(authenticatedUser, null, Collections.emptyList());
-            SecurityContextHolder.getContext().setAuthentication(authentication);
-        } catch (IllegalArgumentException e) {
-            log.warn("내부 API 사용자 식별 헤더가 올바르지 않습니다. uri={}, userUuid={}", request.getRequestURI(), userUuidHeader);
-            writeUnauthorizedResponse(response);
-            return;
+        AuthenticatedUser authenticatedUser;
+        if (hasText(userUuidHeader)) {
+            try {
+                UUID userUuid = UUID.fromString(userUuidHeader);
+                authenticatedUser = new AuthenticatedUser(userUuid, userUuid, "internal");
+            } catch (IllegalArgumentException e) {
+                log.warn("내부 API 사용자 식별 헤더가 올바르지 않습니다. uri={}, userUuid={}", request.getRequestURI(), userUuidHeader);
+                writeUnauthorizedResponse(response);
+                return;
+            }
+        } else {
+            authenticatedUser = new AuthenticatedUser(null, null, "internal");
         }
+
+        UsernamePasswordAuthenticationToken authentication =
+                new UsernamePasswordAuthenticationToken(
+                        authenticatedUser,
+                        null,
+                        Collections.singletonList(new SimpleGrantedAuthority("ROLE_INTERNAL"))
+                );
+        SecurityContextHolder.getContext().setAuthentication(authentication);
 
         filterChain.doFilter(request, response);
     }
@@ -102,8 +117,30 @@ public class InternalApiAuthFilter extends OncePerRequestFilter {
         return value == null ? "" : value.trim();
     }
 
+    private Set<String> parseAllowedServiceIds(String value) {
+        return java.util.Arrays.stream(normalize(value).split(","))
+                .map(this::normalize)
+                .filter(this::hasText)
+                .collect(Collectors.toUnmodifiableSet());
+    }
+
+    private boolean requiresUserContext(String uri) {
+        return uri.startsWith("/internal/invest/accounts/") && uri.endsWith("/etfs");
+    }
+
     private boolean hasText(String value) {
         return value != null && !value.isBlank();
+    }
+
+    private boolean constantTimeEquals(String expected, String actual) {
+        if (!hasText(expected) || actual == null) {
+            return false;
+        }
+
+        byte[] expectedBytes = expected.getBytes(StandardCharsets.UTF_8);
+        byte[] actualBytes = actual.getBytes(StandardCharsets.UTF_8);
+
+        return MessageDigest.isEqual(expectedBytes, actualBytes);
     }
 
 }
