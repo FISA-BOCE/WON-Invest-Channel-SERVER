@@ -4,12 +4,12 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import com.woorifisa.won_invest_channel_server.domain.sweep.dto.command.InboxClaimResult;
 import com.woorifisa.won_invest_channel_server.domain.sweep.dto.event.SweepRequestedEvent;
+import com.woorifisa.won_invest_channel_server.domain.sweep.exception.code.SweepErrorCode;
 import com.woorifisa.won_invest_channel_server.domain.sweep.service.SweepInboxService;
 import com.woorifisa.won_invest_channel_server.domain.sweep.service.SweepRequestProcessService;
 import com.woorifisa.won_invest_channel_server.global.config.SqsProperties;
 import com.woorifisa.won_invest_channel_server.global.config.SweepRequestConsumerProperties;
 import com.woorifisa.won_invest_channel_server.global.exception.handler.BusinessException;
-import com.woorifisa.won_invest_channel_server.domain.sweep.exception.code.SweepErrorCode;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -20,6 +20,7 @@ import software.amazon.awssdk.services.sqs.model.ReceiveMessageRequest;
 import software.amazon.awssdk.services.sqs.model.ReceiveMessageResponse;
 
 import java.time.LocalDateTime;
+import java.util.concurrent.Executor;
 
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.*;
@@ -45,7 +46,9 @@ class SweepRequestConsumerTest {
                 "http://localhost:4566/000000000000/won-card-sweep-result-queue.fifo"
         );
         SweepRequestConsumerProperties properties =
-                new SweepRequestConsumerProperties(true, 10, 5, 300L);
+                new SweepRequestConsumerProperties(true, 10, 5, 300L, 8);
+
+        Executor directExecutor = Runnable::run;
 
         objectMapper = new ObjectMapper();
         objectMapper.registerModule(new JavaTimeModule());
@@ -56,7 +59,8 @@ class SweepRequestConsumerTest {
                 properties,
                 objectMapper,
                 inboxService,
-                processService
+                processService,
+                directExecutor
         );
     }
 

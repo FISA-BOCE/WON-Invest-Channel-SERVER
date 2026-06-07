@@ -3,6 +3,7 @@ package com.woorifisa.won_invest_channel_server.global.security;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.woorifisa.won_invest_channel_server.domain.auth.exception.code.AuthErrorCode;
 import com.woorifisa.won_invest_channel_server.global.response.ErrorResponse;
+import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import java.io.IOException;
@@ -24,11 +25,10 @@ public class RestAuthenticationEntryPoint implements AuthenticationEntryPoint {
             HttpServletRequest request,
             HttpServletResponse response,
             AuthenticationException authException
-    ) throws IOException {
-        ErrorResponse errorResponse = ErrorResponse.of(AuthErrorCode.AUTHENTICATION_REQUIRED);
+    ) throws IOException, ServletException {
         response.setStatus(AuthErrorCode.AUTHENTICATION_REQUIRED.getHttpStatus().value());
-        response.setContentType(MediaType.APPLICATION_JSON_VALUE);
         response.setCharacterEncoding(StandardCharsets.UTF_8.name());
-        objectMapper.writeValue(response.getWriter(), errorResponse);
+        response.setContentType(MediaType.APPLICATION_JSON_VALUE);
+        objectMapper.writeValue(response.getWriter(), ErrorResponse.of(AuthErrorCode.AUTHENTICATION_REQUIRED));
     }
 }
