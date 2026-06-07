@@ -1,6 +1,5 @@
 package com.woorifisa.won_invest_channel_server.domain.invest.api;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
 import com.woorifisa.won_invest_channel_server.domain.invest.dto.response.InvestEtfHoldingsResponse;
 import com.woorifisa.won_invest_channel_server.domain.invest.service.InvestEtfQueryService;
 import com.woorifisa.won_invest_channel_server.global.config.SecurityConfig;
@@ -44,9 +43,9 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 @TestPropertySource(properties = {
         "app.security.jwt-secret=01234567890123456789012345678901",
         "app.security.access-token-expiration-seconds=3600",
-        "internal.channel.allowed-service-id=internal-test-service",
-        "internal.channel.service-id=internal-test-service",
-        "internal.channel.api-key=internal-test-key"
+        "internal.allowed-service-ids=internal-test-service",
+        "internal.service-id=internal-test-service",
+        "internal.api-key=internal-test-key"
 })
 class InvestEtfApiTest {
 
