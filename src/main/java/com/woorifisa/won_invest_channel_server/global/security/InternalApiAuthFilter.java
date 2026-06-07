@@ -9,6 +9,7 @@ import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
+import java.security.MessageDigest;
 import java.util.Collections;
 import java.util.Set;
 import java.util.UUID;
@@ -47,7 +48,8 @@ public class InternalApiAuthFilter extends OncePerRequestFilter {
 
     @Override
     protected boolean shouldNotFilter(HttpServletRequest request) {
-        return !request.getRequestURI().startsWith(INTERNAL_PATH_PREFIX);
+        String uri = request.getRequestURI();
+        return !(uri.equals("/internal") || uri.startsWith(INTERNAL_PATH_PREFIX));
     }
 
     @Override
@@ -65,7 +67,7 @@ public class InternalApiAuthFilter extends OncePerRequestFilter {
         String serviceId = normalize(request.getHeader(SERVICE_ID_HEADER));
         String internalApiKey = normalize(request.getHeader(INTERNAL_API_KEY_HEADER));
 
-        if (!allowedServiceIds.contains(serviceId) || !expectedInternalApiKey.equals(internalApiKey)) {
+        if (!allowedServiceIds.contains(serviceId) || !constantTimeEquals(expectedInternalApiKey, internalApiKey)) {
             log.warn("내부 API 인증 실패. uri={}, serviceId={}", request.getRequestURI(), serviceId);
             writeUnauthorizedResponse(response);
             return;
@@ -128,6 +130,17 @@ public class InternalApiAuthFilter extends OncePerRequestFilter {
 
     private boolean hasText(String value) {
         return value != null && !value.isBlank();
+    }
+
+    private boolean constantTimeEquals(String expected, String actual) {
+        if (!hasText(expected) || actual == null) {
+            return false;
+        }
+
+        byte[] expectedBytes = expected.getBytes(StandardCharsets.UTF_8);
+        byte[] actualBytes = actual.getBytes(StandardCharsets.UTF_8);
+
+        return MessageDigest.isEqual(expectedBytes, actualBytes);
     }
 
 }
