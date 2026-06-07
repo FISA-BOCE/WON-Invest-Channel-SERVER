@@ -6,8 +6,8 @@ import com.woorifisa.won_invest_channel_server.global.exception.handler.Business
 import java.util.Arrays;
 
 public enum AiDbQueryType {
-    MY_ETF_HOLDINGS,
-    MY_ETF_BALANCE_SUMMARY;
+    ETF_LIST,
+    ETF_AMOUNT;
 
     public static AiDbQueryType from(String value) {
         return Arrays.stream(values())

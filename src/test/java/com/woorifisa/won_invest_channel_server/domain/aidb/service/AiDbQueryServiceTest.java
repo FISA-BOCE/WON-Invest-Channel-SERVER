@@ -39,12 +39,12 @@ class AiDbQueryServiceTest {
     private AiDbQueryService aiDbQueryService;
 
     @Test
-    @DisplayName("MY_ETF_HOLDINGS returns holding list response")
+    @DisplayName("ETF_LIST returns holding list response")
     void query_myEtfHoldings_success() {
         given(investChnAiSummaryRepository.findHoldingListResponseByUserUuid(USER_UUID))
                 .willReturn(Optional.of(holdingListResponse()));
 
-        Object response = aiDbQueryService.query(new AiDbQueryRequest(USER_UUID, "MY_ETF_HOLDINGS"));
+        Object response = aiDbQueryService.query(new AiDbQueryRequest(USER_UUID, "ETF_LIST"));
 
         assertThat(response).isInstanceOf(AiDbHoldingListResponse.class);
         AiDbHoldingListResponse result = (AiDbHoldingListResponse) response;
@@ -56,12 +56,12 @@ class AiDbQueryServiceTest {
     }
 
     @Test
-    @DisplayName("MY_ETF_HOLDINGS returns empty response when result is empty")
+    @DisplayName("ETF_LIST returns empty response when result is empty")
     void query_myEtfHoldings_emptyResult() {
         given(investChnAiSummaryRepository.findHoldingListResponseByUserUuid(USER_UUID))
                 .willReturn(Optional.empty());
 
-        Object response = aiDbQueryService.query(new AiDbQueryRequest(USER_UUID, "MY_ETF_HOLDINGS"));
+        Object response = aiDbQueryService.query(new AiDbQueryRequest(USER_UUID, "ETF_LIST"));
 
         assertThat(response).isInstanceOf(AiDbNoHoldingsResponse.class);
         AiDbNoHoldingsResponse result = (AiDbNoHoldingsResponse) response;
@@ -72,12 +72,12 @@ class AiDbQueryServiceTest {
     }
 
     @Test
-    @DisplayName("MY_ETF_BALANCE_SUMMARY returns summary response")
+    @DisplayName("ETF_AMOUNT returns summary response")
     void query_myEtfBalanceSummary_success() {
         given(investChnAiSummaryRepository.findHoldingSummaryResponseByUserUuid(USER_UUID))
                 .willReturn(Optional.of(holdingSummaryResponse()));
 
-        Object response = aiDbQueryService.query(new AiDbQueryRequest(USER_UUID, "MY_ETF_BALANCE_SUMMARY"));
+        Object response = aiDbQueryService.query(new AiDbQueryRequest(USER_UUID, "ETF_AMOUNT"));
 
         assertThat(response).isInstanceOf(AiDbHoldingSummaryResponse.class);
         AiDbHoldingSummaryResponse result = (AiDbHoldingSummaryResponse) response;
@@ -93,12 +93,12 @@ class AiDbQueryServiceTest {
     }
 
     @Test
-    @DisplayName("MY_ETF_BALANCE_SUMMARY throws not found when result is empty")
+    @DisplayName("ETF_AMOUNT throws not found when result is empty")
     void query_myEtfBalanceSummary_resultNotFound() {
         given(investChnAiSummaryRepository.findHoldingSummaryResponseByUserUuid(USER_UUID))
                 .willReturn(Optional.empty());
 
-        assertThatThrownBy(() -> aiDbQueryService.query(new AiDbQueryRequest(USER_UUID, "MY_ETF_BALANCE_SUMMARY")))
+        assertThatThrownBy(() -> aiDbQueryService.query(new AiDbQueryRequest(USER_UUID, "ETF_AMOUNT")))
                 .isInstanceOf(BusinessException.class)
                 .satisfies(ex -> assertThat(((BusinessException) ex).getErrorCode())
                         .isEqualTo(AiDbErrorCode.QUERY_RESULT_NOT_FOUND));
@@ -120,7 +120,7 @@ class AiDbQueryServiceTest {
         given(investChnAiSummaryRepository.findHoldingSummaryResponseByUserUuid(USER_UUID))
                 .willThrow(cause);
 
-        assertThatThrownBy(() -> aiDbQueryService.query(new AiDbQueryRequest(USER_UUID, "MY_ETF_BALANCE_SUMMARY")))
+        assertThatThrownBy(() -> aiDbQueryService.query(new AiDbQueryRequest(USER_UUID, "ETF_AMOUNT")))
                 .isInstanceOf(BusinessException.class)
                 .hasCause(cause)
                 .satisfies(ex -> assertThat(((BusinessException) ex).getErrorCode())
@@ -134,7 +134,7 @@ class AiDbQueryServiceTest {
         given(investChnAiSummaryRepository.findHoldingListResponseByUserUuid(USER_UUID))
                 .willThrow(cause);
 
-        assertThatThrownBy(() -> aiDbQueryService.query(new AiDbQueryRequest(USER_UUID, "MY_ETF_HOLDINGS")))
+        assertThatThrownBy(() -> aiDbQueryService.query(new AiDbQueryRequest(USER_UUID, "ETF_LIST")))
                 .isInstanceOf(BusinessException.class)
                 .hasCause(cause)
                 .satisfies(ex -> assertThat(((BusinessException) ex).getErrorCode())
