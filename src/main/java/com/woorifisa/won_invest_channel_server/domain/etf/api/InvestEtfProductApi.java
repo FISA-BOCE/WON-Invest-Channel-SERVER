@@ -34,8 +34,6 @@ public class InvestEtfProductApi {
     @GetMapping("/api/invest/etfs/{etfId}")
     public ResponseEntity<ApiResponse<InvestEtfProductDetailResponse>> getEtfProductDetail(
             @AuthenticationPrincipal AuthenticatedUser authenticatedUser,
-            @Parameter(description = "호출 서비스 식별자", required = true)
-            @RequestHeader("X-Service-ID") String serviceId,
             @Parameter(description = "트랜잭션 추적용 ID")
             @RequestHeader(value = "X-Transaction-ID", required = false) String transactionId,
             @Parameter(description = "조회할 ETF 내부 ID", required = true)
