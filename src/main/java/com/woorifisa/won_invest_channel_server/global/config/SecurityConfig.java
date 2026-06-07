@@ -35,8 +35,8 @@ public class SecurityConfig {
                 .httpBasic(AbstractHttpConfigurer::disable)
                 .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .authorizeHttpRequests(auth -> auth
-                        .requestMatchers("/internal/**").permitAll()
                         .requestMatchers("/actuator/**", "/swagger-ui/**", "/v3/api-docs/**").permitAll()
+                        .requestMatchers("/internal/**").hasRole("INTERNAL")
                         .requestMatchers(HttpMethod.POST, "/api/invest/accounts/new", "/api/invest/accounts/link").authenticated()
                         .requestMatchers(HttpMethod.GET, "/api/invest/etfs/*").authenticated()
                         .anyRequest().authenticated()
