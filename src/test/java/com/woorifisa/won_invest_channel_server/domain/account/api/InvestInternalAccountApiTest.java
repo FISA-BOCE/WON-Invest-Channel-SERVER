@@ -39,9 +39,11 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 @TestPropertySource(properties = {
         "app.security.jwt-secret=01234567890123456789012345678901",
         "app.security.access-token-expiration-seconds=3600",
-        "internal.channel.allowed-service-id=internal-test-service",
-        "internal.channel.service-id=internal-test-service",
-        "internal.channel.api-key=internal-test-key"
+        "internal.allowed-service-ids=won-card-channel,won-common",
+        "internal.service-id=won-invest-channel",
+        "internal.api-key=internal-test-key",
+        "internal.services.invest-core.base-url=http://localhost:18081",
+        "internal.services.common.base-url=http://localhost:18082"
 })
 class InvestInternalAccountApiTest {
 
@@ -59,7 +61,7 @@ class InvestInternalAccountApiTest {
     @DisplayName("내부 인증 헤더가 없으면 401을 반환한다")
     void getInternalAccounts_missingAuthHeader_unauthorized() throws Exception {
         mockMvc.perform(get("/internal/invest/accounts")
-                        .header("X-Service-ID", "internal-test-service")
+                        .header("X-Service-ID", "won-card-channel")
                         .header("X-User-UUID", USER_UUID.toString()))
                 .andExpect(status().isUnauthorized())
                 .andExpect(jsonPath("$.status").value(401))
@@ -71,7 +73,7 @@ class InvestInternalAccountApiTest {
     @DisplayName("내부 인증 헤더가 일치하지 않으면 401을 반환한다")
     void getInternalAccounts_invalidAuthHeader_unauthorized() throws Exception {
         mockMvc.perform(get("/internal/invest/accounts")
-                        .header("X-Service-ID", "internal-test-service")
+                        .header("X-Service-ID", "won-card-channel")
                         .header("X-Internal-Api-Key", "wrong-key")
                         .header("X-User-UUID", USER_UUID.toString()))
                 .andExpect(status().isUnauthorized())
@@ -87,7 +89,7 @@ class InvestInternalAccountApiTest {
                 .willReturn(new InternalInvestAccountsResponse(List.of()));
 
         mockMvc.perform(get("/internal/invest/accounts")
-                        .header("X-Service-ID", "internal-test-service")
+                        .header("X-Service-ID", "won-card-channel")
                         .header("X-Internal-Api-Key", "internal-test-key")
                         .header("X-User-UUID", USER_UUID.toString()))
                 .andExpect(status().isOk())
@@ -116,7 +118,7 @@ class InvestInternalAccountApiTest {
                 )));
 
         mockMvc.perform(get("/internal/invest/accounts")
-                        .header("X-Service-ID", "internal-test-service")
+                        .header("X-Service-ID", "won-card-channel")
                         .header("X-Internal-Api-Key", "internal-test-key")
                         .header("X-User-UUID", USER_UUID.toString()))
                 .andExpect(status().isOk())

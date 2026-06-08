@@ -10,6 +10,7 @@ import com.woorifisa.won_invest_channel_server.global.response.SuccessStatus;
 import com.woorifisa.won_invest_channel_server.global.security.AuthenticatedUser;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
+import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import java.util.UUID;
@@ -18,7 +19,6 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
@@ -35,15 +35,11 @@ public class InvestInternalAccountSummaryApi {
             summary = "증권 계좌 summary upsert - 내부 API",
             description = "증권 코어 원장 변경 시 내부 서비스가 X-Service-ID, X-Internal-Api-Key, X-User-UUID 헤더로 호출하는 증권 계좌 summary upsert API입니다."
     )
+    @SecurityRequirement(name = "SERVICE_ID")
+    @SecurityRequirement(name = "INTERNAL_API_KEY")
     @PutMapping("/internal/invest/accounts/summary")
     public ResponseEntity<ApiResponse<InternalUpsertInvestAccountSummaryResponse>> upsertInternalAccountSummary(
             @AuthenticationPrincipal AuthenticatedUser authenticatedUser,
-            @Parameter(description = "내부 호출 서비스 식별자", required = true)
-            @RequestHeader("X-Service-ID") String serviceId,
-            @Parameter(description = "내부 API 인증 키", required = true)
-            @RequestHeader("X-Internal-Api-Key") String internalApiKey,
-            @Parameter(description = "동기화 요청 사용자 UUID", required = true)
-            @RequestHeader("X-User-UUID") String userUuid,
             @Parameter(description = "증권 계좌 UUID", required = true)
             @RequestParam UUID investAccountUuid,
             @Valid @RequestBody InternalUpsertInvestAccountSummaryRequest request

@@ -43,9 +43,11 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 @TestPropertySource(properties = {
         "app.security.jwt-secret=01234567890123456789012345678901",
         "app.security.access-token-expiration-seconds=3600",
-        "internal.allowed-service-ids=internal-test-service",
-        "internal.service-id=internal-test-service",
-        "internal.api-key=internal-test-key"
+        "internal.allowed-service-ids=won-card-channel,won-common",
+        "internal.service-id=won-invest-channel",
+        "internal.api-key=internal-test-key",
+        "internal.services.invest-core.base-url=http://localhost:18081",
+        "internal.services.common.base-url=http://localhost:18082"
 })
 class InvestEtfApiTest {
 
@@ -118,7 +120,7 @@ class InvestEtfApiTest {
     @DisplayName("내부 API 요청에 X-User-UUID가 없으면 401을 반환한다")
     void getInternalAccountEtfs_missingUserUuidHeader() throws Exception {
         mockMvc.perform(get("/internal/invest/accounts/{accountUuid}/etfs", ACCOUNT_UUID)
-                        .header("X-Service-ID", "internal-test-service")
+                        .header("X-Service-ID", "won-card-channel")
                         .header("X-Internal-Api-Key", "internal-test-key"))
                 .andExpect(status().isUnauthorized())
                 .andExpect(jsonPath("$.status").value(401))
@@ -149,7 +151,7 @@ class InvestEtfApiTest {
                 ));
 
         mockMvc.perform(get("/internal/invest/accounts/{accountUuid}/etfs", ACCOUNT_UUID)
-                        .header("X-Service-ID", "internal-test-service")
+                        .header("X-Service-ID", "won-card-channel")
                         .header("X-Internal-Api-Key", "internal-test-key")
                         .header("X-User-UUID", USER_UUID.toString()))
                 .andExpect(status().isOk())

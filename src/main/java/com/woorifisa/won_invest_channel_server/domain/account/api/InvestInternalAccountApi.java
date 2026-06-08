@@ -8,13 +8,12 @@ import com.woorifisa.won_invest_channel_server.global.response.ApiResponse;
 import com.woorifisa.won_invest_channel_server.global.response.SuccessStatus;
 import com.woorifisa.won_invest_channel_server.global.security.AuthenticatedUser;
 import io.swagger.v3.oas.annotations.Operation;
-import io.swagger.v3.oas.annotations.Parameter;
+import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
@@ -30,15 +29,11 @@ public class InvestInternalAccountApi {
             summary = "증권 계좌 목록 조회 - 내부 API",
             description = "내부 서비스가 X-Service-ID, X-Internal-Api-Key, X-User-UUID 헤더로 호출하는 증권 계좌 목록 조회 API입니다."
     )
+    @SecurityRequirement(name = "SERVICE_ID")
+    @SecurityRequirement(name = "INTERNAL_API_KEY")
     @GetMapping("/internal/invest/accounts")
     public ResponseEntity<ApiResponse<InternalInvestAccountsResponse>> getInternalAccounts(
-            @AuthenticationPrincipal AuthenticatedUser authenticatedUser,
-            @Parameter(description = "내부 호출 서비스 식별자", required = true)
-            @RequestHeader("X-Service-ID") String serviceId,
-            @Parameter(description = "내부 API 인증 키", required = true)
-            @RequestHeader("X-Internal-Api-Key") String internalApiKey,
-            @Parameter(description = "조회 요청 사용자 UUID", required = true)
-            @RequestHeader("X-User-UUID") String userUuid
+            @AuthenticationPrincipal AuthenticatedUser authenticatedUser
     ) {
         InternalInvestAccountsResponse response =
                 investAccountService.getInternalAccounts(requireAuthenticatedUser(authenticatedUser).userUuid());
