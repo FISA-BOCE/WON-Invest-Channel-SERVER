@@ -11,6 +11,7 @@ import feign.Request;
 import feign.Response;
 import java.math.BigDecimal;
 import java.nio.charset.StandardCharsets;
+import java.time.LocalDate;
 import java.time.OffsetDateTime;
 import java.util.List;
 import java.util.Map;
@@ -47,7 +48,7 @@ class InvestCoreEtfQueryClientTest {
     void fetchCoreEtfHoldings_success() {
         InvestEtfHoldingsResponse coreData = response();
         given(investCoreEtfQueryApi.getAccountEtfHoldings(USER_UUID, ACCOUNT_UUID))
-                .willReturn(new ApiResponse<>(200, "INVEST_200_005", "보유 ETF 조회가 완료되었습니다.", coreData));
+                .willReturn(new ApiResponse<>(200, "INVEST_200_007", "보유 ETF 조회가 완료되었습니다.", coreData));
 
         InvestEtfHoldingsResponse response = investCoreEtfQueryClient.fetchCoreEtfHoldings(USER_UUID, ACCOUNT_UUID);
 
@@ -58,7 +59,7 @@ class InvestCoreEtfQueryClientTest {
     @DisplayName("Core 응답 data가 없으면 INTERNAL_QUERY_FAILED 예외가 발생한다")
     void fetchCoreEtfHoldings_coreResponseWithoutData() {
         given(investCoreEtfQueryApi.getAccountEtfHoldings(USER_UUID, ACCOUNT_UUID))
-                .willReturn(new ApiResponse<>(200, "INVEST_200_005", "보유 ETF 조회가 완료되었습니다.", null));
+                .willReturn(new ApiResponse<>(200, "INVEST_200_007", "보유 ETF 조회가 완료되었습니다.", null));
 
         assertThatThrownBy(() -> investCoreEtfQueryClient.fetchCoreEtfHoldings(USER_UUID, ACCOUNT_UUID))
                 .isInstanceOf(BusinessException.class)
@@ -130,6 +131,7 @@ class InvestCoreEtfQueryClientTest {
 
     private InvestEtfHoldingsResponse response() {
         return new InvestEtfHoldingsResponse(
+                LocalDate.of(2026, 6, 4),
                 new BigDecimal("79420.00"),
                 new BigDecimal("4820.00"),
                 new BigDecimal("6.45"),

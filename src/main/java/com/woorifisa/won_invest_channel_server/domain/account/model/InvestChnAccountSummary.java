@@ -51,4 +51,12 @@ public class InvestChnAccountSummary extends BaseTimeEntity {
         this.accountNoDisplay = accountNoDisplay;
         this.accountStatus = accountStatus;
     }
+
+    public void updateSummary(
+            String accountNoDisplay,
+            AccountStatus accountStatus
+    ) {
+        this.accountNoDisplay = accountNoDisplay;
+        this.accountStatus = accountStatus;
+    }
 }

@@ -9,6 +9,7 @@ import com.woorifisa.won_invest_channel_server.global.security.JwtTokenProvider;
 import com.woorifisa.won_invest_channel_server.global.security.RestAccessDeniedHandler;
 import com.woorifisa.won_invest_channel_server.global.security.RestAuthenticationEntryPoint;
 import java.math.BigDecimal;
+import java.time.LocalDate;
 import java.time.OffsetDateTime;
 import java.util.List;
 import java.util.UUID;
@@ -42,9 +43,11 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 @TestPropertySource(properties = {
         "app.security.jwt-secret=01234567890123456789012345678901",
         "app.security.access-token-expiration-seconds=3600",
-        "internal.allowed-service-ids=internal-test-service",
-        "internal.service-id=internal-test-service",
-        "internal.api-key=internal-test-key"
+        "internal.allowed-service-ids=won-card-channel,won-common",
+        "internal.service-id=won-invest-channel",
+        "internal.api-key=internal-test-key",
+        "internal.services.invest-core.base-url=http://localhost:18081",
+        "internal.services.common.base-url=http://localhost:18082"
 })
 class InvestEtfApiTest {
 
@@ -65,6 +68,7 @@ class InvestEtfApiTest {
     void getAccountEtfs_success() throws Exception {
         given(investEtfQueryService.getAccountEtfs(eq(USER_UUID), eq(ACCOUNT_UUID)))
                 .willReturn(new InvestEtfHoldingsResponse(
+                        LocalDate.of(2026, 6, 4),
                         new BigDecimal("79420.00"),
                         new BigDecimal("4820.00"),
                         new BigDecimal("6.45"),
@@ -92,8 +96,9 @@ class InvestEtfApiTest {
                 .header(HttpHeaders.AUTHORIZATION, bearerToken()))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.status").value(200))
-                .andExpect(jsonPath("$.code").value("INVEST_200_005"))
+                .andExpect(jsonPath("$.code").value("INVEST_200_007"))
                 .andExpect(jsonPath("$.message").value("보유 ETF 조회가 완료되었습니다."))
+                .andExpect(jsonPath("$.data.baseDate").value("2026-06-04"))
                 .andExpect(jsonPath("$.data.totalEvaluationAmount").value(79420.00))
                 .andExpect(jsonPath("$.data.holdings[0].ticker").value("VOO"))
                 .andExpect(jsonPath("$.data.recentExecutions[0].executionType").value("시장가 체결"));
@@ -115,7 +120,7 @@ class InvestEtfApiTest {
     @DisplayName("내부 API 요청에 X-User-UUID가 없으면 401을 반환한다")
     void getInternalAccountEtfs_missingUserUuidHeader() throws Exception {
         mockMvc.perform(get("/internal/invest/accounts/{accountUuid}/etfs", ACCOUNT_UUID)
-                        .header("X-Service-ID", "internal-test-service")
+                        .header("X-Service-ID", "won-card-channel")
                         .header("X-Internal-Api-Key", "internal-test-key"))
                 .andExpect(status().isUnauthorized())
                 .andExpect(jsonPath("$.status").value(401))
@@ -128,6 +133,7 @@ class InvestEtfApiTest {
     void getInternalAccountEtfs_success() throws Exception {
         given(investEtfQueryService.getAccountEtfs(eq(USER_UUID), eq(ACCOUNT_UUID)))
                 .willReturn(new InvestEtfHoldingsResponse(
+                        LocalDate.of(2026, 6, 4),
                         new BigDecimal("79420.00"),
                         new BigDecimal("4820.00"),
                         new BigDecimal("6.45"),
@@ -145,12 +151,12 @@ class InvestEtfApiTest {
                 ));
 
         mockMvc.perform(get("/internal/invest/accounts/{accountUuid}/etfs", ACCOUNT_UUID)
-                        .header("X-Service-ID", "internal-test-service")
+                        .header("X-Service-ID", "won-card-channel")
                         .header("X-Internal-Api-Key", "internal-test-key")
                         .header("X-User-UUID", USER_UUID.toString()))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.status").value(200))
-                .andExpect(jsonPath("$.code").value("INVEST_200_005"))
+                .andExpect(jsonPath("$.code").value("INVEST_200_007"))
                 .andExpect(jsonPath("$.data.holdings[0].ticker").value("VOO"));
     }
 

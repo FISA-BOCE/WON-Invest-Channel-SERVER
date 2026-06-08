@@ -4,8 +4,11 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.woorifisa.won_invest_channel_server.domain.account.dto.request.CreateInvestAccountChannelRequest;
 import com.woorifisa.won_invest_channel_server.domain.account.dto.request.CreateInvestAccountRequest;
+import com.woorifisa.won_invest_channel_server.domain.account.dto.request.InternalUpsertInvestAccountSummaryRequest;
 import com.woorifisa.won_invest_channel_server.domain.account.dto.request.LinkAccountRequest;
 import com.woorifisa.won_invest_channel_server.domain.account.dto.response.CreateInvestAccountResponse;
+import com.woorifisa.won_invest_channel_server.domain.account.dto.response.InternalInvestAccountsResponse;
+import com.woorifisa.won_invest_channel_server.domain.account.dto.response.InternalUpsertInvestAccountSummaryResponse;
 import com.woorifisa.won_invest_channel_server.domain.account.dto.response.LinkAccountResponse;
 import com.woorifisa.won_invest_channel_server.domain.account.exception.code.InvestAccountErrorCode;
 import com.woorifisa.won_invest_channel_server.domain.account.external.CommonMappingApi;
@@ -23,9 +26,11 @@ import com.woorifisa.won_invest_channel_server.global.exception.handler.Business
 import com.woorifisa.won_invest_channel_server.global.response.ApiResponse;
 import com.woorifisa.won_invest_channel_server.global.response.ErrorResponse;
 import feign.FeignException;
+import jakarta.persistence.EntityManager;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
@@ -44,6 +49,69 @@ public class InvestAccountService {
     private final InvestCoreAccountApi investCoreAccountApi;
     private final InvestChnAccountSummaryRepository accountSummaryRepository;
     private final ObjectMapper objectMapper;
+    private final EntityManager entityManager;
+
+    public InternalInvestAccountsResponse getInternalAccounts(UUID userUuid) {
+        List<InternalInvestAccountsResponse.Account> accounts = accountSummaryRepository
+                .findAllByUserUuidOrderByCreatedAtDesc(userUuid)
+                .stream()
+                .map(this::toInternalAccountResponse)
+                .toList();
+
+        return new InternalInvestAccountsResponse(accounts);
+    }
+
+    @Transactional
+    public InternalUpsertInvestAccountSummaryResponse upsertAccountSummary(
+            UUID investAccountUuid,
+            InternalUpsertInvestAccountSummaryRequest request
+    ) {
+        AccountStatus accountStatus = AccountStatus.valueOf(request.accountStatus());
+
+        InvestChnAccountSummary savedAccountSummary = accountSummaryRepository.findById(investAccountUuid)
+                .map(existingAccount -> saveUpdatedSummary(existingAccount, request.accountNoDisplay(), accountStatus))
+                .orElseGet(() -> saveNewOrRetrySummary(investAccountUuid, request, accountStatus));
+
+        return new InternalUpsertInvestAccountSummaryResponse(
+                savedAccountSummary.getInvestAccountUuid(),
+                savedAccountSummary.getInvestUserUuid(),
+                savedAccountSummary.getUserUuid(),
+                savedAccountSummary.getAccountNoDisplay(),
+                savedAccountSummary.getAccountStatus().name()
+        );
+    }
+
+    private InvestChnAccountSummary saveUpdatedSummary(
+            InvestChnAccountSummary existingAccount,
+            String accountNoDisplay,
+            AccountStatus accountStatus
+    ) {
+        existingAccount.updateSummary(accountNoDisplay, accountStatus);
+        return accountSummaryRepository.save(existingAccount);
+    }
+
+    private InvestChnAccountSummary saveNewOrRetrySummary(
+            UUID investAccountUuid,
+            InternalUpsertInvestAccountSummaryRequest request,
+            AccountStatus accountStatus
+    ) {
+        InvestChnAccountSummary newAccountSummary = InvestChnAccountSummary.builder()
+                .investAccountUuid(investAccountUuid)
+                .investUserUuid(request.investUserUuid())
+                .userUuid(request.userUuid())
+                .accountNoDisplay(request.accountNoDisplay())
+                .accountStatus(accountStatus)
+                .build();
+
+        try {
+            return accountSummaryRepository.save(newAccountSummary);
+        } catch (DataIntegrityViolationException e) {
+            entityManager.clear();
+            InvestChnAccountSummary existingAccount = accountSummaryRepository.findById(investAccountUuid)
+                    .orElseThrow(() -> e);
+            return saveUpdatedSummary(existingAccount, request.accountNoDisplay(), accountStatus);
+        }
+    }
 
     @Transactional
     public LinkAccountResponse linkAccount(UUID userUuid, LinkAccountRequest request) {
@@ -152,13 +220,15 @@ public class InvestAccountService {
 
         InvestAccountCoreResponse coreData = coreResponse.data();
 
-        accountSummaryRepository.save(InvestChnAccountSummary.builder()
-                .investAccountUuid(coreData.investAccountUuid())
-                .investUserUuid(coreData.investUserUuid())
-                .userUuid(userUuid)
-                .accountNoDisplay(coreData.accountNoDisplay())
-                .accountStatus(AccountStatus.valueOf(coreData.accountStatus()))
-                .build());
+        upsertAccountSummary(
+                coreData.investAccountUuid(),
+                new InternalUpsertInvestAccountSummaryRequest(
+                        coreData.investUserUuid(),
+                        userUuid,
+                        coreData.accountNoDisplay(),
+                        coreData.accountStatus()
+                )
+        );
 
         try {
             commonMappingApi.linkInvestMapping(
@@ -198,6 +268,14 @@ public class InvestAccountService {
                 coreData.accountStatus(),
                 coreData.investConnectedStatus(),
                 coreData.openedAt()
+        );
+    }
+
+    private InternalInvestAccountsResponse.Account toInternalAccountResponse(InvestChnAccountSummary accountSummary) {
+        return new InternalInvestAccountsResponse.Account(
+                accountSummary.getInvestAccountUuid(),
+                accountSummary.getAccountNoDisplay(),
+                accountSummary.getAccountStatus().name()
         );
     }
 
