@@ -5,6 +5,7 @@ import com.woorifisa.won_invest_channel_server.domain.account.dto.request.Create
 import com.woorifisa.won_invest_channel_server.domain.account.dto.request.LinkAccountRequest;
 import com.woorifisa.won_invest_channel_server.domain.account.dto.request.InternalUpsertInvestAccountSummaryRequest;
 import com.woorifisa.won_invest_channel_server.domain.account.dto.response.CreateInvestAccountResponse;
+import com.woorifisa.won_invest_channel_server.domain.account.dto.response.InternalInvestAccountDetailResponse;
 import com.woorifisa.won_invest_channel_server.domain.account.dto.response.InternalInvestAccountsResponse;
 import com.woorifisa.won_invest_channel_server.domain.account.dto.response.InternalUpsertInvestAccountSummaryResponse;
 import com.woorifisa.won_invest_channel_server.domain.account.dto.response.LinkAccountResponse;
@@ -139,6 +140,54 @@ class InvestAccountServiceTest {
         InternalInvestAccountsResponse response = investAccountService.getInternalAccounts(USER_UUID);
 
         assertThat(response.accounts()).isEmpty();
+    }
+
+    @Test
+    @DisplayName("내부 단건 계좌 조회 시 계좌 소유자와 상태를 반환한다")
+    void getInternalAccount_success() {
+        InvestChnAccountSummary account = InvestChnAccountSummary.builder()
+                .investAccountUuid(ACCOUNT_UUID)
+                .investUserUuid(INVEST_USER_UUID)
+                .userUuid(USER_UUID)
+                .accountNoDisplay("123-***-***456")
+                .accountStatus(AccountStatus.ACTIVE)
+                .build();
+        given(accountSummaryRepository.findById(ACCOUNT_UUID)).willReturn(Optional.of(account));
+
+        InternalInvestAccountDetailResponse response = investAccountService.getInternalAccount(USER_UUID, ACCOUNT_UUID);
+
+        assertThat(response.investAccountUuid()).isEqualTo(ACCOUNT_UUID);
+        assertThat(response.userUuid()).isEqualTo(USER_UUID);
+        assertThat(response.accountStatus()).isEqualTo("ACTIVE");
+    }
+
+    @Test
+    @DisplayName("내부 단건 계좌 조회 시 계좌가 없으면 NOT_FOUND 예외")
+    void getInternalAccount_notFound() {
+        given(accountSummaryRepository.findById(ACCOUNT_UUID)).willReturn(Optional.empty());
+
+        assertThatThrownBy(() -> investAccountService.getInternalAccount(USER_UUID, ACCOUNT_UUID))
+                .isInstanceOf(BusinessException.class)
+                .satisfies(ex -> assertThat(((BusinessException) ex).getErrorCode())
+                        .isEqualTo(InvestAccountErrorCode.ACCOUNT_NOT_FOUND));
+    }
+
+    @Test
+    @DisplayName("내부 단건 계좌 조회 시 다른 사용자 계좌면 FORBIDDEN 예외")
+    void getInternalAccount_forbidden() {
+        InvestChnAccountSummary account = InvestChnAccountSummary.builder()
+                .investAccountUuid(ACCOUNT_UUID)
+                .investUserUuid(INVEST_USER_UUID)
+                .userUuid(UUID.fromString("aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa"))
+                .accountNoDisplay("123-***-***456")
+                .accountStatus(AccountStatus.ACTIVE)
+                .build();
+        given(accountSummaryRepository.findById(ACCOUNT_UUID)).willReturn(Optional.of(account));
+
+        assertThatThrownBy(() -> investAccountService.getInternalAccount(USER_UUID, ACCOUNT_UUID))
+                .isInstanceOf(BusinessException.class)
+                .satisfies(ex -> assertThat(((BusinessException) ex).getErrorCode())
+                        .isEqualTo(InvestAccountErrorCode.NOT_ACCOUNT_OWNER));
     }
 
     @Test
