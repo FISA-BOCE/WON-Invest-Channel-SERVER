@@ -12,6 +12,7 @@ public enum EtfErrorCode implements ErrorCode {
     CORE_ETF_UPSERT_REQUEST_EMPTY(HttpStatus.BAD_REQUEST, "ETF_400_003", "Core ETF 상품 동기화 요청 정보가 없습니다."),
     ETF_NOT_ELIGIBLE(HttpStatus.BAD_REQUEST, "ETF_400_006", "서비스 제공 불가 ETF입니다."),
     ETF_PRODUCT_NOT_FOUND(HttpStatus.NOT_FOUND, "ETF_404_001", "ETF 상품을 찾을 수 없습니다."),
+    ETF_PRODUCT_QUERY_FAILED(HttpStatus.SERVICE_UNAVAILABLE, "ETF_503_001", "ETF 정보를 일시적으로 조회할 수 없습니다."),
     CORE_ETF_ID_EMPTY(HttpStatus.BAD_GATEWAY, "ETF_502_001", "Core ETF ID가 없습니다."),
 
     KIS_PRODUCT_TYPE_CODE_EMPTY(HttpStatus.BAD_REQUEST, "ETF_400_004", "KIS 상품유형코드가 없습니다."),

@@ -1,6 +1,7 @@
 package com.woorifisa.won_invest_channel_server.domain.etf.api;
 
 import com.woorifisa.won_invest_channel_server.domain.auth.exception.code.AuthErrorCode;
+import com.woorifisa.won_invest_channel_server.domain.etf.dto.response.InvestEtfProductListResponse;
 import com.woorifisa.won_invest_channel_server.domain.etf.dto.response.InvestEtfProductDetailResponse;
 import com.woorifisa.won_invest_channel_server.domain.etf.service.InvestEtfProductQueryService;
 import com.woorifisa.won_invest_channel_server.global.exception.handler.BusinessException;
@@ -26,6 +27,25 @@ import org.springframework.web.bind.annotation.RestController;
 public class InvestEtfProductApi {
 
     private final InvestEtfProductQueryService investEtfProductQueryService;
+
+    @Operation(
+            summary = "제공 ETF 목록 조회",
+            description = "자동투자 대상으로 제공 가능한 ETF 목록을 조회합니다."
+    )
+    @GetMapping("/api/invest/etfs")
+    public ResponseEntity<ApiResponse<InvestEtfProductListResponse>> getEtfProducts(
+            @AuthenticationPrincipal AuthenticatedUser authenticatedUser,
+            @Parameter(description = "트랜잭션 추적용 ID")
+            @RequestHeader(value = "X-Transaction-ID", required = false) String transactionId
+    ) {
+        requireAuthenticatedUser(authenticatedUser);
+
+        InvestEtfProductListResponse response = investEtfProductQueryService.getEtfProducts();
+
+        return ResponseEntity
+                .status(SuccessStatus.ETF_PRODUCT_LIST_FOUND.getHttpStatus())
+                .body(ApiResponse.of(SuccessStatus.ETF_PRODUCT_LIST_FOUND, response));
+    }
 
     @Operation(
             summary = "ETF 상품 상세 조회",
