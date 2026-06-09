@@ -125,7 +125,9 @@ public class InternalApiAuthFilter extends OncePerRequestFilter {
     }
 
     private boolean requiresUserContext(String uri) {
-        return uri.startsWith("/internal/invest/accounts/") && uri.endsWith("/etfs");
+        return uri.equals("/internal/invest/accounts")
+                || uri.equals("/internal/invest/accounts/summary")
+                || uri.startsWith("/internal/invest/accounts/");
     }
 
     private boolean hasText(String value) {

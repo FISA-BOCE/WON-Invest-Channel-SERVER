@@ -5,6 +5,7 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.BDDMockito.given;
 
 import com.woorifisa.won_invest_channel_server.domain.etf.dto.response.InvestEtfProductDetailResponse;
+import com.woorifisa.won_invest_channel_server.domain.etf.dto.response.InternalInvestEtfDetailResponse;
 import com.woorifisa.won_invest_channel_server.domain.etf.exception.EtfSyncException;
 import com.woorifisa.won_invest_channel_server.domain.etf.exception.code.EtfErrorCode;
 import com.woorifisa.won_invest_channel_server.domain.etf.model.InvestChnEtfProduct;
@@ -95,5 +96,35 @@ class InvestEtfProductQueryServiceTest {
         InvestEtfProductDetailResponse response = investEtfProductQueryService.getEtfProductDetail(2L);
 
         assertThat(response.riskGrade()).isNull();
+    }
+
+    @Test
+    @DisplayName("내부 ETF 단건 조회 시 카드 채널 검증용 필드를 반환한다")
+    void getInternalEtfProductDetail_success() {
+        InvestChnEtfProduct product = InvestChnEtfProduct.create(
+                3L,
+                "KIS",
+                "US-QQQ",
+                "QQQ",
+                "Invesco QQQ Trust",
+                "기술주 중심 ETF",
+                "NASDAQ",
+                EtfCurrency.USD,
+                EtfRiskGrade.MEDIUM,
+                false,
+                true,
+                3,
+                LocalDateTime.of(2026, 6, 4, 12, 0)
+        );
+
+        given(investChnEtfProductRepository.findById(3L)).willReturn(Optional.of(product));
+
+        InternalInvestEtfDetailResponse response = investEtfProductQueryService.getInternalEtfProductDetail(3L);
+
+        assertThat(response.etfId()).isEqualTo(3L);
+        assertThat(response.etfName()).isEqualTo("Invesco QQQ Trust");
+        assertThat(response.ticker()).isEqualTo("QQQ");
+        assertThat(response.isTradeAvailable()).isTrue();
+        assertThat(response.isFractionalAvailable()).isFalse();
     }
 }

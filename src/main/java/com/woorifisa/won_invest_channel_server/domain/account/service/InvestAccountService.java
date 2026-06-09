@@ -7,6 +7,7 @@ import com.woorifisa.won_invest_channel_server.domain.account.dto.request.Create
 import com.woorifisa.won_invest_channel_server.domain.account.dto.request.InternalUpsertInvestAccountSummaryRequest;
 import com.woorifisa.won_invest_channel_server.domain.account.dto.request.LinkAccountRequest;
 import com.woorifisa.won_invest_channel_server.domain.account.dto.response.CreateInvestAccountResponse;
+import com.woorifisa.won_invest_channel_server.domain.account.dto.response.InternalInvestAccountDetailResponse;
 import com.woorifisa.won_invest_channel_server.domain.account.dto.response.InternalInvestAccountsResponse;
 import com.woorifisa.won_invest_channel_server.domain.account.dto.response.InternalUpsertInvestAccountSummaryResponse;
 import com.woorifisa.won_invest_channel_server.domain.account.dto.response.LinkAccountResponse;
@@ -59,6 +60,17 @@ public class InvestAccountService {
                 .toList();
 
         return new InternalInvestAccountsResponse(accounts);
+    }
+
+    public InternalInvestAccountDetailResponse getInternalAccount(UUID requestUserUuid, UUID investAccountUuid) {
+        InvestChnAccountSummary accountSummary = accountSummaryRepository.findById(investAccountUuid)
+                .orElseThrow(() -> new BusinessException(InvestAccountErrorCode.ACCOUNT_NOT_FOUND));
+
+        if (!accountSummary.getUserUuid().equals(requestUserUuid)) {
+            throw new BusinessException(InvestAccountErrorCode.NOT_ACCOUNT_OWNER);
+        }
+
+        return InternalInvestAccountDetailResponse.from(accountSummary);
     }
 
     @Transactional

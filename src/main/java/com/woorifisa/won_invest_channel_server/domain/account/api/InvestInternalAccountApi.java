@@ -1,6 +1,7 @@
 package com.woorifisa.won_invest_channel_server.domain.account.api;
 
 import com.woorifisa.won_invest_channel_server.domain.account.dto.response.InternalInvestAccountsResponse;
+import com.woorifisa.won_invest_channel_server.domain.account.dto.response.InternalInvestAccountDetailResponse;
 import com.woorifisa.won_invest_channel_server.domain.account.service.InvestAccountService;
 import com.woorifisa.won_invest_channel_server.domain.auth.exception.code.AuthErrorCode;
 import com.woorifisa.won_invest_channel_server.global.exception.handler.BusinessException;
@@ -14,8 +15,11 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
+
+import java.util.UUID;
 
 @RestController
 @RequiredArgsConstructor
@@ -40,6 +44,26 @@ public class InvestInternalAccountApi {
         return ResponseEntity
                 .status(SuccessStatus.INVEST_ACCOUNT_LIST_FOUND.getHttpStatus())
                 .body(ApiResponse.of(SuccessStatus.INVEST_ACCOUNT_LIST_FOUND, response));
+    }
+
+    @Operation(
+            summary = "증권 계좌 단건 조회 - 내부 API",
+            description = "내부 서비스가 X-Service-ID, X-Internal-Api-Key, X-User-UUID 헤더로 호출하는 증권 계좌 단건 검증 조회 API입니다."
+    )
+    @SecurityRequirement(name = "SERVICE_ID")
+    @SecurityRequirement(name = "INTERNAL_API_KEY")
+    @GetMapping("/internal/invest/accounts/{investAccountUuid}")
+    public ResponseEntity<ApiResponse<InternalInvestAccountDetailResponse>> getInternalAccount(
+            @AuthenticationPrincipal AuthenticatedUser authenticatedUser,
+            @PathVariable UUID investAccountUuid
+    ) {
+        InternalInvestAccountDetailResponse response = investAccountService.getInternalAccount(
+                requireAuthenticatedUser(authenticatedUser).userUuid(),
+                investAccountUuid
+        );
+        return ResponseEntity
+                .status(SuccessStatus.INVEST_ACCOUNT_DETAIL_FOUND.getHttpStatus())
+                .body(ApiResponse.of(SuccessStatus.INVEST_ACCOUNT_DETAIL_FOUND, response));
     }
 
     private AuthenticatedUser requireAuthenticatedUser(AuthenticatedUser authenticatedUser) {
