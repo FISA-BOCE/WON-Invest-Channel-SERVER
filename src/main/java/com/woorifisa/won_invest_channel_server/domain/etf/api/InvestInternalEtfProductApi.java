@@ -7,14 +7,17 @@ import com.woorifisa.won_invest_channel_server.global.response.SuccessStatus;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import jakarta.validation.constraints.Positive;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
+import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 @RestController
+@Validated
 @RequiredArgsConstructor
 @RequestMapping
 @Tag(name = "Invest Internal ETF Product", description = "ETF 상품 내부 조회 API")
@@ -30,7 +33,7 @@ public class InvestInternalEtfProductApi {
     @SecurityRequirement(name = "INTERNAL_API_KEY")
     @GetMapping("/internal/invest/etfs/{etfId}")
     public ResponseEntity<ApiResponse<InternalInvestEtfDetailResponse>> getInternalEtfProductDetail(
-            @PathVariable Long etfId
+            @PathVariable @Positive Long etfId
     ) {
         InternalInvestEtfDetailResponse response = investEtfProductQueryService.getInternalEtfProductDetail(etfId);
 
