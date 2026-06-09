@@ -18,16 +18,15 @@ public class InvestEtfProductQueryService {
     private final InvestChnEtfProductRepository investChnEtfProductRepository;
 
     public InvestEtfProductDetailResponse getEtfProductDetail(Long etfId) {
-        InvestChnEtfProduct product = investChnEtfProductRepository.findById(etfId)
-                .orElseThrow(() -> new EtfSyncException(EtfErrorCode.ETF_PRODUCT_NOT_FOUND));
-
-        return InvestEtfProductDetailResponse.from(product);
+        return InvestEtfProductDetailResponse.from(findEtfProductById(etfId));
     }
 
     public InternalInvestEtfDetailResponse getInternalEtfProductDetail(Long etfId) {
-        InvestChnEtfProduct product = investChnEtfProductRepository.findById(etfId)
-                .orElseThrow(() -> new EtfSyncException(EtfErrorCode.ETF_PRODUCT_NOT_FOUND));
+        return InternalInvestEtfDetailResponse.from(findEtfProductById(etfId));
+    }
 
-        return InternalInvestEtfDetailResponse.from(product);
+    private InvestChnEtfProduct findEtfProductById(Long etfId) {
+        return investChnEtfProductRepository.findById(etfId)
+                .orElseThrow(() -> new EtfSyncException(EtfErrorCode.ETF_PRODUCT_NOT_FOUND));
     }
 }
