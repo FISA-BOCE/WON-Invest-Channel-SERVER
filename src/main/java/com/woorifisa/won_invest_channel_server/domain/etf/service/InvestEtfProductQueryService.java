@@ -2,6 +2,7 @@ package com.woorifisa.won_invest_channel_server.domain.etf.service;
 
 import com.woorifisa.won_invest_channel_server.domain.etf.dto.response.InvestEtfProductListResponse;
 import com.woorifisa.won_invest_channel_server.domain.etf.dto.response.InvestEtfProductDetailResponse;
+import com.woorifisa.won_invest_channel_server.domain.etf.dto.response.InternalInvestEtfDetailResponse;
 import com.woorifisa.won_invest_channel_server.domain.etf.exception.EtfSyncException;
 import com.woorifisa.won_invest_channel_server.domain.etf.exception.code.EtfErrorCode;
 import com.woorifisa.won_invest_channel_server.domain.etf.model.InvestChnEtfProduct;
@@ -69,5 +70,12 @@ public class InvestEtfProductQueryService {
                 )
                 .thenComparing(InvestChnEtfProduct::getEtfId)
                 .compare(left, right) >= 0 ? left : right;
+    }
+
+    public InternalInvestEtfDetailResponse getInternalEtfProductDetail(Long etfId) {
+        InvestChnEtfProduct product = investChnEtfProductRepository.findById(etfId)
+                .orElseThrow(() -> new EtfSyncException(EtfErrorCode.ETF_PRODUCT_NOT_FOUND));
+
+        return InternalInvestEtfDetailResponse.from(product);
     }
 }
