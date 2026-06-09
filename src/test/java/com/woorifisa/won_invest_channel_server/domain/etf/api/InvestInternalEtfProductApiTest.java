@@ -105,4 +105,13 @@ class InvestInternalEtfProductApiTest {
                 .andExpect(jsonPath("$.code").value("AUTH_401_001"))
                 .andExpect(jsonPath("$.message").value("인증이 필요합니다."));
     }
+
+    @Test
+    @DisplayName("내부 ETF 단건 조회 시 etfId가 0 이하면 400을 반환한다")
+    void getInternalEtfProductDetail_invalidEtfId() throws Exception {
+        mockMvc.perform(get("/internal/invest/etfs/{etfId}", 0L)
+                        .header("X-Service-ID", "won-card-channel")
+                        .header("X-Internal-Api-Key", "internal-test-key"))
+                .andExpect(status().isBadRequest());
+    }
 }
