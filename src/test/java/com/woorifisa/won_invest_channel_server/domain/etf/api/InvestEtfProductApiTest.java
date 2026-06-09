@@ -6,12 +6,15 @@ import static org.mockito.BDDMockito.given;
 
 import com.woorifisa.won_invest_channel_server.domain.auth.exception.code.AuthErrorCode;
 import com.woorifisa.won_invest_channel_server.domain.etf.dto.response.InvestEtfProductDetailResponse;
+import com.woorifisa.won_invest_channel_server.domain.etf.dto.response.InvestEtfProductListResponse;
 import com.woorifisa.won_invest_channel_server.domain.etf.model.type.EtfCurrency;
 import com.woorifisa.won_invest_channel_server.domain.etf.model.type.EtfRiskGrade;
 import com.woorifisa.won_invest_channel_server.domain.etf.service.InvestEtfProductQueryService;
 import com.woorifisa.won_invest_channel_server.global.exception.handler.BusinessException;
 import com.woorifisa.won_invest_channel_server.global.response.ApiResponse;
 import com.woorifisa.won_invest_channel_server.global.security.AuthenticatedUser;
+import java.time.LocalDateTime;
+import java.util.List;
 import java.util.UUID;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -31,6 +34,41 @@ class InvestEtfProductApiTest {
 
     @InjectMocks
     private InvestEtfProductApi investEtfProductApi;
+
+    @Test
+    @DisplayName("인증된 요청이면 ETF 목록 조회 결과를 공통 응답 포맷으로 반환한다")
+    void getEtfProducts_success() {
+        InvestEtfProductListResponse listResponse = new InvestEtfProductListResponse(List.of(
+                new InvestEtfProductListResponse.EtfSummary(
+                        1L,
+                        "VOO",
+                        "Vanguard S&P 500 ETF",
+                        "미국 대표 지수 ETF",
+                        "AMEX",
+                        EtfCurrency.USD,
+                        EtfRiskGrade.MEDIUM,
+                        true,
+                        true,
+                        true,
+                        1,
+                        LocalDateTime.of(2026, 6, 4, 12, 0)
+                )
+        ));
+
+        given(investEtfProductQueryService.getEtfProducts()).willReturn(listResponse);
+
+        ResponseEntity<ApiResponse<InvestEtfProductListResponse>> response =
+                investEtfProductApi.getEtfProducts(
+                        new AuthenticatedUser(USER_UUID, USER_UUID, "jti-test"),
+                        "TX-20260604-ETF00"
+                );
+
+        assertThat(response.getStatusCode().value()).isEqualTo(200);
+        assertThat(response.getBody()).isNotNull();
+        assertThat(response.getBody().code()).isEqualTo("INVEST_200_003");
+        assertThat(response.getBody().message()).isEqualTo("ETF 상품 목록 조회가 완료되었습니다.");
+        assertThat(response.getBody().data()).isEqualTo(listResponse);
+    }
 
     @Test
     @DisplayName("인증된 요청이면 ETF 상세 조회 결과를 공통 응답 포맷으로 반환한다")
@@ -56,16 +94,29 @@ class InvestEtfProductApiTest {
         assertThat(response.getStatusCode().value()).isEqualTo(200);
         assertThat(response.getBody()).isNotNull();
         assertThat(response.getBody().code()).isEqualTo("INVEST_200_004");
+        assertThat(response.getBody().message()).isEqualTo("ETF 상품 상세 조회가 완료되었습니다.");
         assertThat(response.getBody().data()).isEqualTo(detailResponse);
     }
 
     @Test
-    @DisplayName("인증 정보 없으면 UNAUTHORIZED 예외 발생")
+    @DisplayName("상세 조회 시 인증 정보 없으면 UNAUTHORIZED 예외 발생")
     void getEtfProductDetail_unauthorized() {
         assertThatThrownBy(() -> investEtfProductApi.getEtfProductDetail(
                 null,
                 "TX-20260604-ETF01",
                 1L
+        ))
+                .isInstanceOf(BusinessException.class)
+                .satisfies(ex -> assertThat(((BusinessException) ex).getErrorCode())
+                        .isEqualTo(AuthErrorCode.AUTHENTICATION_REQUIRED));
+    }
+
+    @Test
+    @DisplayName("목록 조회 시 인증 정보 없으면 UNAUTHORIZED 예외 발생")
+    void getEtfProducts_unauthorized() {
+        assertThatThrownBy(() -> investEtfProductApi.getEtfProducts(
+                null,
+                "TX-20260604-ETF00"
         ))
                 .isInstanceOf(BusinessException.class)
                 .satisfies(ex -> assertThat(((BusinessException) ex).getErrorCode())
