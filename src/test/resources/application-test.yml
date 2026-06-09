@@ -1,0 +1,35 @@
+internal:
+  service-id: test-channel
+  api-key: test-test-test-test
+  allowed-service-ids: won-test,won-test2
+  services:
+    invest-core:
+      base-url: http://localhost:8084
+    common:
+      base-url: http://localhost:8080
+
+aws:
+  sqs:
+    region: ap-northeast-2
+    endpoint: http://localhost:4566
+    sweep-request-queue-url: http://localhost:4566/000000000000/won-test-test-test-queue.fifo
+    sweep-result-queue-url: http://localhost:4566/000000000000/won-test-test-test-queue.fifo
+
+app:
+  security:
+    jwt-secret: test-invest-channel-jwt-secret-for-ci-only-please-do-not-use
+    access-token-expiration-seconds: 3600
+
+sweep:
+  consumer:
+    enabled: false
+    max-messages: 10
+    wait-time-seconds: 0
+    processing-timeout-seconds: 300
+    worker-count: 8
+  outbox:
+    publisher:
+      enabled: false
+      batch-size: 20
+      max-retry-count: 5
+      fixed-delay-ms: 10000
