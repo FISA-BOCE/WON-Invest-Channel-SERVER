@@ -2,6 +2,7 @@ package com.woorifisa.won_invest_channel_server.domain.etf.service;
 
 import com.woorifisa.won_invest_channel_server.domain.etf.dto.response.InvestEtfProductListResponse;
 import com.woorifisa.won_invest_channel_server.domain.etf.dto.response.InvestEtfProductDetailResponse;
+import com.woorifisa.won_invest_channel_server.domain.etf.dto.response.InvestEtfProductListResponse;
 import com.woorifisa.won_invest_channel_server.domain.etf.dto.response.InternalInvestEtfDetailResponse;
 import com.woorifisa.won_invest_channel_server.domain.etf.exception.EtfSyncException;
 import com.woorifisa.won_invest_channel_server.domain.etf.exception.code.EtfErrorCode;
@@ -78,7 +79,26 @@ public class InvestEtfProductQueryService {
     }
 
     private InvestChnEtfProduct findEtfProductById(Long etfId) {
-        return investChnEtfProductRepository.findById(etfId)
-                .orElseThrow(() -> new EtfSyncException(EtfErrorCode.ETF_PRODUCT_NOT_FOUND));
+        try {
+            return investChnEtfProductRepository.findById(etfId)
+                    .orElseThrow(() -> new EtfSyncException(EtfErrorCode.ETF_PRODUCT_NOT_FOUND));
+        } catch (DataAccessException e) {
+            throw new EtfSyncException(EtfErrorCode.ETF_PRODUCT_QUERY_FAILED, e);
+        }
+    }
+
+    private boolean isAutoInvestAvailable(InvestChnEtfProduct product) {
+        return Boolean.TRUE.equals(product.getIsTradeAvailable())
+                && Boolean.TRUE.equals(product.getIsFractionalAvailable())
+                && EtfCurrency.USD == product.getCurrency();
+    }
+
+    private InvestChnEtfProduct selectLatestProduct(InvestChnEtfProduct left, InvestChnEtfProduct right) {
+        return Comparator.comparing(
+                        InvestChnEtfProduct::getLastSyncedAt,
+                        Comparator.nullsFirst(Comparator.naturalOrder())
+                )
+                .thenComparing(InvestChnEtfProduct::getEtfId)
+                .compare(left, right) >= 0 ? left : right;
     }
 }
