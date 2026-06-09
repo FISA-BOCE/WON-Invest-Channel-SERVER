@@ -5,6 +5,7 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.BDDMockito.given;
 
 import com.woorifisa.won_invest_channel_server.domain.etf.dto.response.InvestEtfProductDetailResponse;
+import com.woorifisa.won_invest_channel_server.domain.etf.dto.response.InvestEtfProductListResponse;
 import com.woorifisa.won_invest_channel_server.domain.etf.exception.EtfSyncException;
 import com.woorifisa.won_invest_channel_server.domain.etf.exception.code.EtfErrorCode;
 import com.woorifisa.won_invest_channel_server.domain.etf.model.InvestChnEtfProduct;
@@ -12,6 +13,7 @@ import com.woorifisa.won_invest_channel_server.domain.etf.model.type.EtfCurrency
 import com.woorifisa.won_invest_channel_server.domain.etf.model.type.EtfRiskGrade;
 import com.woorifisa.won_invest_channel_server.domain.etf.repository.InvestChnEtfProductRepository;
 import java.time.LocalDateTime;
+import java.util.List;
 import java.util.Optional;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -19,6 +21,7 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.dao.DataAccessResourceFailureException;
 
 @ExtendWith(MockitoExtension.class)
 class InvestEtfProductQueryServiceTest {
@@ -28,6 +31,86 @@ class InvestEtfProductQueryServiceTest {
 
     @InjectMocks
     private InvestEtfProductQueryService investEtfProductQueryService;
+
+    @Test
+    @DisplayName("ETF 목록 조회 시 자동투자 가능 ETF만 티커 기준 최신 동기화 건으로 displayOrder 순 반환한다")
+    void getEtfProducts_success() {
+        InvestChnEtfProduct secondProduct = InvestChnEtfProduct.create(
+                1L,
+                "KIS",
+                "US-VOO",
+                "VOO",
+                "Vanguard S&P 500 ETF",
+                "미국 대표 대형주 ETF",
+                "AMEX",
+                EtfCurrency.USD,
+                EtfRiskGrade.MEDIUM,
+                true,
+                true,
+                2,
+                LocalDateTime.of(2026, 6, 4, 12, 0)
+        );
+
+        InvestChnEtfProduct firstProduct = InvestChnEtfProduct.create(
+                2L,
+                "KIS",
+                "US-SPY",
+                "SPY",
+                "SPDR S&P 500 ETF Trust",
+                "미국 대표 지수 ETF",
+                "NYSE",
+                EtfCurrency.USD,
+                EtfRiskGrade.MEDIUM,
+                true,
+                true,
+                1,
+                LocalDateTime.of(2026, 6, 4, 11, 0)
+        );
+
+        InvestChnEtfProduct staleDuplicateProduct = InvestChnEtfProduct.create(
+                900001L,
+                "KIS",
+                "VOO",
+                "VOO",
+                "Vanguard S&P 500 ETF",
+                "테스트용 ETF",
+                "AMEX",
+                EtfCurrency.USD,
+                EtfRiskGrade.MEDIUM,
+                true,
+                true,
+                1,
+                LocalDateTime.of(2026, 6, 4, 9, 0)
+        );
+
+        InvestChnEtfProduct excludedProduct = InvestChnEtfProduct.create(
+                3L,
+                "KIS",
+                "EU-EUR",
+                "EURF",
+                "Euro Bond ETF",
+                "USD 외 통화 ETF",
+                "NYSE",
+                EtfCurrency.EUR,
+                EtfRiskGrade.LOW,
+                true,
+                true,
+                3,
+                LocalDateTime.of(2026, 6, 4, 10, 0)
+        );
+
+        given(investChnEtfProductRepository.findAll())
+                .willReturn(List.of(secondProduct, excludedProduct, firstProduct, staleDuplicateProduct));
+
+        InvestEtfProductListResponse response = investEtfProductQueryService.getEtfProducts();
+
+        assertThat(response.etfs()).hasSize(2);
+        assertThat(response.etfs().get(0).etfId()).isEqualTo(2L);
+        assertThat(response.etfs().get(0).displayOrder()).isEqualTo(1);
+        assertThat(response.etfs().get(1).etfId()).isEqualTo(1L);
+        assertThat(response.etfs().get(1).description()).isEqualTo("미국 대표 대형주 ETF");
+        assertThat(response.etfs()).allMatch(InvestEtfProductListResponse.EtfSummary::isAutoInvestAvailable);
+    }
 
     @Test
     @DisplayName("ETF 상품 상세 조회 시 필요한 필드를 응답으로 반환한다")
@@ -95,5 +178,17 @@ class InvestEtfProductQueryServiceTest {
         InvestEtfProductDetailResponse response = investEtfProductQueryService.getEtfProductDetail(2L);
 
         assertThat(response.riskGrade()).isNull();
+    }
+
+    @Test
+    @DisplayName("ETF 목록 조회 중 DB 실패면 SERVICE_UNAVAILABLE 예외를 반환한다")
+    void getEtfProducts_queryFailed() {
+        given(investChnEtfProductRepository.findAll())
+                .willThrow(new DataAccessResourceFailureException("db down"));
+
+        assertThatThrownBy(() -> investEtfProductQueryService.getEtfProducts())
+                .isInstanceOf(EtfSyncException.class)
+                .satisfies(ex -> assertThat(((EtfSyncException) ex).getErrorCode())
+                        .isEqualTo(EtfErrorCode.ETF_PRODUCT_QUERY_FAILED));
     }
 }
