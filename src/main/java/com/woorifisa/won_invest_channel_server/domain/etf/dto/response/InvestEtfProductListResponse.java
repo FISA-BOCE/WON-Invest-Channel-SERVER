@@ -26,6 +26,12 @@ public record InvestEtfProductListResponse(
     ) {
 
         public static EtfSummary from(InvestChnEtfProduct product) {
+            boolean isTradeAvailable = Boolean.TRUE.equals(product.getIsTradeAvailable());
+            boolean isFractionalAvailable = Boolean.TRUE.equals(product.getIsFractionalAvailable());
+            boolean isAutoInvestAvailable = isTradeAvailable
+                    && isFractionalAvailable
+                    && EtfCurrency.USD == product.getCurrency();
+
             return new EtfSummary(
                     product.getEtfId(),
                     product.getTicker(),
@@ -34,9 +40,9 @@ public record InvestEtfProductListResponse(
                     product.getMarket(),
                     product.getCurrency(),
                     product.getRiskGrade(),
-                    Boolean.TRUE.equals(product.getIsTradeAvailable()),
-                    Boolean.TRUE.equals(product.getIsFractionalAvailable()),
-                    true,
+                    isTradeAvailable,
+                    isFractionalAvailable,
+                    isAutoInvestAvailable,
                     product.getDisplayOrder(),
                     product.getLastSyncedAt()
             );

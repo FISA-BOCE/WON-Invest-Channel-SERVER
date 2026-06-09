@@ -191,4 +191,30 @@ class InvestEtfProductQueryServiceTest {
                 .satisfies(ex -> assertThat(((EtfSyncException) ex).getErrorCode())
                         .isEqualTo(EtfErrorCode.ETF_PRODUCT_QUERY_FAILED));
     }
+
+    @Test
+    @DisplayName("ETF 목록 DTO 매핑 시 자동투자 가능 여부를 실제 상품 상태로 계산한다")
+    void etfSummaryFrom_computesAutoInvestAvailability() {
+        InvestChnEtfProduct product = InvestChnEtfProduct.create(
+                10L,
+                "KIS",
+                "EU-TEST",
+                "TEST",
+                "Test ETF",
+                "테스트 ETF",
+                "NYSE",
+                EtfCurrency.EUR,
+                EtfRiskGrade.LOW,
+                true,
+                true,
+                10,
+                LocalDateTime.of(2026, 6, 4, 12, 0)
+        );
+
+        InvestEtfProductListResponse.EtfSummary response = InvestEtfProductListResponse.EtfSummary.from(product);
+
+        assertThat(response.isTradeAvailable()).isTrue();
+        assertThat(response.isFractionalAvailable()).isTrue();
+        assertThat(response.isAutoInvestAvailable()).isFalse();
+    }
 }
