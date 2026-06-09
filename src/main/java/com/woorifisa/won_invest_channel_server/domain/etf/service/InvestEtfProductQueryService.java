@@ -1,9 +1,8 @@
 package com.woorifisa.won_invest_channel_server.domain.etf.service;
 
-import com.woorifisa.won_invest_channel_server.domain.etf.dto.response.InvestEtfProductListResponse;
+import com.woorifisa.won_invest_channel_server.domain.etf.dto.response.InternalInvestEtfDetailResponse;
 import com.woorifisa.won_invest_channel_server.domain.etf.dto.response.InvestEtfProductDetailResponse;
 import com.woorifisa.won_invest_channel_server.domain.etf.dto.response.InvestEtfProductListResponse;
-import com.woorifisa.won_invest_channel_server.domain.etf.dto.response.InternalInvestEtfDetailResponse;
 import com.woorifisa.won_invest_channel_server.domain.etf.exception.EtfSyncException;
 import com.woorifisa.won_invest_channel_server.domain.etf.exception.code.EtfErrorCode;
 import com.woorifisa.won_invest_channel_server.domain.etf.model.InvestChnEtfProduct;
@@ -27,7 +26,6 @@ public class InvestEtfProductQueryService {
     public InvestEtfProductListResponse getEtfProducts() {
         try {
             Map<String, InvestChnEtfProduct> latestProductsByTicker = investChnEtfProductRepository.findAll().stream()
-                    .filter(this::isAutoInvestAvailable)
                     .collect(java.util.stream.Collectors.toMap(
                             InvestChnEtfProduct::getTicker,
                             product -> product,
@@ -35,6 +33,7 @@ public class InvestEtfProductQueryService {
                     ));
 
             List<InvestEtfProductListResponse.EtfSummary> etfs = latestProductsByTicker.values().stream()
+                    .filter(this::isAutoInvestAvailable)
                     .sorted(Comparator
                             .comparing(InvestChnEtfProduct::getDisplayOrder, Comparator.nullsLast(Integer::compareTo))
                             .thenComparing(InvestChnEtfProduct::getTicker))
@@ -48,29 +47,6 @@ public class InvestEtfProductQueryService {
     }
 
     public InvestEtfProductDetailResponse getEtfProductDetail(Long etfId) {
-        try {
-            InvestChnEtfProduct product = investChnEtfProductRepository.findById(etfId)
-                    .orElseThrow(() -> new EtfSyncException(EtfErrorCode.ETF_PRODUCT_NOT_FOUND));
-
-            return InvestEtfProductDetailResponse.from(product);
-        } catch (DataAccessException e) {
-            throw new EtfSyncException(EtfErrorCode.ETF_PRODUCT_QUERY_FAILED, e);
-        }
-    }
-
-    private boolean isAutoInvestAvailable(InvestChnEtfProduct product) {
-        return Boolean.TRUE.equals(product.getIsTradeAvailable())
-                && Boolean.TRUE.equals(product.getIsFractionalAvailable())
-                && EtfCurrency.USD == product.getCurrency();
-    }
-
-    private InvestChnEtfProduct selectLatestProduct(InvestChnEtfProduct left, InvestChnEtfProduct right) {
-        return Comparator.comparing(
-                        InvestChnEtfProduct::getLastSyncedAt,
-                        Comparator.nullsFirst(Comparator.naturalOrder())
-                )
-                .thenComparing(InvestChnEtfProduct::getEtfId)
-                .compare(left, right) >= 0 ? left : right;
         return InvestEtfProductDetailResponse.from(findEtfProductById(etfId));
     }
 

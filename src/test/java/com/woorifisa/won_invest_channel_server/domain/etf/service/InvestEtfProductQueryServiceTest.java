@@ -34,9 +34,9 @@ class InvestEtfProductQueryServiceTest {
     private InvestEtfProductQueryService investEtfProductQueryService;
 
     @Test
-    @DisplayName("ETF 목록 조회 시 자동투자 가능 ETF만 티커 기준 최신 동기화 건으로 displayOrder 순 반환한다")
+    @DisplayName("ETF 목록 조회 시 티커 기준 최신 동기화 건만 남긴 뒤 자동투자 가능 ETF를 displayOrder 순 반환한다")
     void getEtfProducts_success() {
-        InvestChnEtfProduct secondProduct = InvestChnEtfProduct.create(
+        InvestChnEtfProduct latestEligibleProduct = InvestChnEtfProduct.create(
                 1L,
                 "KIS",
                 "US-VOO",
@@ -84,6 +84,22 @@ class InvestEtfProductQueryServiceTest {
                 LocalDateTime.of(2026, 6, 4, 9, 0)
         );
 
+        InvestChnEtfProduct latestIneligibleDuplicateProduct = InvestChnEtfProduct.create(
+                900002L,
+                "KIS",
+                "VOO-LATEST",
+                "VOO",
+                "Vanguard S&P 500 ETF",
+                "최신이지만 자동투자 불가 ETF",
+                "AMEX",
+                EtfCurrency.USD,
+                EtfRiskGrade.MEDIUM,
+                false,
+                true,
+                1,
+                LocalDateTime.of(2026, 6, 4, 13, 0)
+        );
+
         InvestChnEtfProduct excludedProduct = InvestChnEtfProduct.create(
                 3L,
                 "KIS",
@@ -101,15 +117,20 @@ class InvestEtfProductQueryServiceTest {
         );
 
         given(investChnEtfProductRepository.findAll())
-                .willReturn(List.of(secondProduct, excludedProduct, firstProduct, staleDuplicateProduct));
+                .willReturn(List.of(
+                        latestEligibleProduct,
+                        excludedProduct,
+                        firstProduct,
+                        staleDuplicateProduct,
+                        latestIneligibleDuplicateProduct
+                ));
 
         InvestEtfProductListResponse response = investEtfProductQueryService.getEtfProducts();
 
-        assertThat(response.etfs()).hasSize(2);
+        assertThat(response.etfs()).hasSize(1);
         assertThat(response.etfs().get(0).etfId()).isEqualTo(2L);
         assertThat(response.etfs().get(0).displayOrder()).isEqualTo(1);
-        assertThat(response.etfs().get(1).etfId()).isEqualTo(1L);
-        assertThat(response.etfs().get(1).description()).isEqualTo("미국 대표 대형주 ETF");
+        assertThat(response.etfs()).noneMatch(etf -> "VOO".equals(etf.ticker()));
         assertThat(response.etfs()).allMatch(InvestEtfProductListResponse.EtfSummary::isAutoInvestAvailable);
     }
 
