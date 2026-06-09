@@ -15,6 +15,7 @@ public enum SuccessStatus {
     INVEST_ACCOUNT_LIST_FOUND(HttpStatus.OK, "INVEST_200_005", "증권 계좌 목록 조회가 완료되었습니다."),
     INVEST_ACCOUNT_SUMMARY_UPSERTED(HttpStatus.OK, "INVEST_200_006", "증권 계좌 summary 동기화가 완료되었습니다."),
     INVEST_ACCOUNT_ETF_FOUND(HttpStatus.OK, "INVEST_200_007", "보유 ETF 조회가 완료되었습니다."),
+    INVEST_ACCOUNT_DETAIL_FOUND(HttpStatus.OK, "INVEST_200_008", "증권 계좌 상세 조회가 완료되었습니다."),
 
     CORE_ETF_PRODUCT_SYNCED(HttpStatus.OK, "ETF_200_001", "ETF 상품 마스터 동기화가 완료되었습니다."),
     ETF_PRODUCT_SYNC_SUCCESS(HttpStatus.OK, "INVEST_200_002", "ETF 상품 동기화가 완료되었습니다."),
