@@ -4,8 +4,8 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.BDDMockito.given;
 
-import com.woorifisa.won_invest_channel_server.domain.etf.dto.response.InvestEtfProductDetailResponse;
 import com.woorifisa.won_invest_channel_server.domain.etf.dto.response.InternalInvestEtfDetailResponse;
+import com.woorifisa.won_invest_channel_server.domain.etf.dto.response.InvestEtfProductDetailResponse;
 import com.woorifisa.won_invest_channel_server.domain.etf.dto.response.InvestEtfProductListResponse;
 import com.woorifisa.won_invest_channel_server.domain.etf.exception.EtfSyncException;
 import com.woorifisa.won_invest_channel_server.domain.etf.exception.code.EtfErrorCode;
@@ -217,6 +217,18 @@ class InvestEtfProductQueryServiceTest {
         assertThat(response.isTradeAvailable()).isTrue();
         assertThat(response.isFractionalAvailable()).isTrue();
         assertThat(response.isAutoInvestAvailable()).isFalse();
+    }
+
+    @Test
+    @DisplayName("ETF 목록 조회 중 DB 실패면 SERVICE_UNAVAILABLE 예외를 반환한다")
+    void getEtfProducts_queryFailed() {
+        given(investChnEtfProductRepository.findAll())
+                .willThrow(new DataAccessResourceFailureException("db down"));
+
+        assertThatThrownBy(() -> investEtfProductQueryService.getEtfProducts())
+                .isInstanceOf(EtfSyncException.class)
+                .satisfies(ex -> assertThat(((EtfSyncException) ex).getErrorCode())
+                        .isEqualTo(EtfErrorCode.ETF_PRODUCT_QUERY_FAILED));
     }
 
     @Test
