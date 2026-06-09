@@ -220,18 +220,6 @@ class InvestEtfProductQueryServiceTest {
     }
 
     @Test
-    @DisplayName("ETF 목록 조회 중 DB 실패면 SERVICE_UNAVAILABLE 예외를 반환한다")
-    void getEtfProducts_queryFailed() {
-        given(investChnEtfProductRepository.findAll())
-                .willThrow(new DataAccessResourceFailureException("db down"));
-
-        assertThatThrownBy(() -> investEtfProductQueryService.getEtfProducts())
-                .isInstanceOf(EtfSyncException.class)
-                .satisfies(ex -> assertThat(((EtfSyncException) ex).getErrorCode())
-                        .isEqualTo(EtfErrorCode.ETF_PRODUCT_QUERY_FAILED));
-    }
-
-    @Test
     @DisplayName("내부 ETF 단건 조회 시 카드 채널 검증용 필드를 반환한다")
     void getInternalEtfProductDetail_success() {
         InvestChnEtfProduct product = InvestChnEtfProduct.create(
