@@ -81,7 +81,12 @@ public class InvestAccountService {
         AccountStatus accountStatus = AccountStatus.valueOf(request.accountStatus());
 
         InvestChnAccountSummary savedAccountSummary = accountSummaryRepository.findById(investAccountUuid)
-                .map(existingAccount -> saveUpdatedSummary(existingAccount, request.accountNoDisplay(), accountStatus))
+                .map(existingAccount -> saveUpdatedSummary(
+                        existingAccount,
+                        request.accountNoDisplay(),
+                        request.accountHolderName(),
+                        accountStatus
+                ))
                 .orElseGet(() -> saveNewOrRetrySummary(investAccountUuid, request, accountStatus));
 
         return new InternalUpsertInvestAccountSummaryResponse(
@@ -89,6 +94,7 @@ public class InvestAccountService {
                 savedAccountSummary.getInvestUserUuid(),
                 savedAccountSummary.getUserUuid(),
                 savedAccountSummary.getAccountNoDisplay(),
+                savedAccountSummary.getAccountHolderName(),
                 savedAccountSummary.getAccountStatus().name()
         );
     }
@@ -96,9 +102,10 @@ public class InvestAccountService {
     private InvestChnAccountSummary saveUpdatedSummary(
             InvestChnAccountSummary existingAccount,
             String accountNoDisplay,
+            String accountHolderName,
             AccountStatus accountStatus
     ) {
-        existingAccount.updateSummary(accountNoDisplay, accountStatus);
+        existingAccount.updateSummary(accountNoDisplay, accountHolderName, accountStatus);
         return accountSummaryRepository.save(existingAccount);
     }
 
@@ -112,6 +119,7 @@ public class InvestAccountService {
                 .investUserUuid(request.investUserUuid())
                 .userUuid(request.userUuid())
                 .accountNoDisplay(request.accountNoDisplay())
+                .accountHolderName(request.accountHolderName())
                 .accountStatus(accountStatus)
                 .build();
 
@@ -121,7 +129,12 @@ public class InvestAccountService {
             entityManager.clear();
             InvestChnAccountSummary existingAccount = accountSummaryRepository.findById(investAccountUuid)
                     .orElseThrow(() -> e);
-            return saveUpdatedSummary(existingAccount, request.accountNoDisplay(), accountStatus);
+            return saveUpdatedSummary(
+                    existingAccount,
+                    request.accountNoDisplay(),
+                    request.accountHolderName(),
+                    accountStatus
+            );
         }
     }
 
@@ -238,6 +251,7 @@ public class InvestAccountService {
                         coreData.investUserUuid(),
                         userUuid,
                         coreData.accountNoDisplay(),
+                        request.customerName(),
                         coreData.accountStatus()
                 )
         );

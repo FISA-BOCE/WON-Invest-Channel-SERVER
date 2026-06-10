@@ -7,6 +7,7 @@ public record InternalUpsertInvestAccountSummaryResponse(
         UUID investUserUuid,
         UUID userUuid,
         String accountNoDisplay,
+        String accountHolderName,
         String accountStatus
 ) {
 }
