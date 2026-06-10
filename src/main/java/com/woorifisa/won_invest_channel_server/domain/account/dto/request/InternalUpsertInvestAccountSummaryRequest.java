@@ -14,6 +14,7 @@ public record InternalUpsertInvestAccountSummaryRequest(
         @NotBlank
         String accountNoDisplay,
 
+        @NotBlank
         String accountHolderName,
 
         @NotBlank
