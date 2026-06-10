@@ -25,8 +25,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.BDDMockito.given;
-import static org.mockito.BDDMockito.then;
-import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.verifyNoInteractions;
 
 @ExtendWith(MockitoExtension.class)
 class InvestMainQueryServiceTest {
@@ -53,11 +52,10 @@ class InvestMainQueryServiceTest {
                 .willReturn(List.of(account(AccountStatus.ACTIVE, ACCOUNT_UUID, "123-***-***456")));
         given(aiSummaryRepository.findTopByUserUuidAndInvestAccountUuidOrderByLastSyncedAtDescSummaryIdDesc(USER_UUID, ACCOUNT_UUID))
                 .willReturn(Optional.of(aiSummary()));
-        given(holdingSummaryRepository.findByInvestAccountUuidOrderByLastSyncedAtDescHoldingSummaryIdDesc(ACCOUNT_UUID))
+        given(holdingSummaryRepository.findTop2ByInvestAccountUuidOrderByLastSyncedAtDescHoldingSummaryIdDesc(ACCOUNT_UUID))
                 .willReturn(List.of(
                         holding("QQQ", "나스닥 100 ETF", "0.0241", "16280"),
-                        holding("VOO", "S&P 500 ETF", "0.0132", "11800"),
-                        holding("SPY", "SPDR S&P 500 ETF", "0.0020", "900")
+                        holding("VOO", "S&P 500 ETF", "0.0132", "11800")
                 ));
 
         InvestMainResponse response = investMainQueryService.getInvestMain(USER_UUID);
@@ -83,7 +81,7 @@ class InvestMainQueryServiceTest {
                 .willReturn(List.of(account(AccountStatus.SUSPENDED, ACCOUNT_UUID, "123-***-***456")));
         given(aiSummaryRepository.findTopByUserUuidAndInvestAccountUuidOrderByLastSyncedAtDescSummaryIdDesc(USER_UUID, ACCOUNT_UUID))
                 .willReturn(Optional.empty());
-        given(holdingSummaryRepository.findByInvestAccountUuidOrderByLastSyncedAtDescHoldingSummaryIdDesc(ACCOUNT_UUID))
+        given(holdingSummaryRepository.findTop2ByInvestAccountUuidOrderByLastSyncedAtDescHoldingSummaryIdDesc(ACCOUNT_UUID))
                 .willReturn(List.of());
 
         InvestMainResponse response = investMainQueryService.getInvestMain(USER_UUID);
@@ -107,8 +105,7 @@ class InvestMainQueryServiceTest {
                 .satisfies(ex -> assertThat(((BusinessException) ex).getErrorCode())
                         .isEqualTo(InvestErrorCode.ACCOUNT_NOT_FOUND));
 
-        then(aiSummaryRepository).should(never())
-                .findTopByUserUuidAndInvestAccountUuidOrderByLastSyncedAtDescSummaryIdDesc(USER_UUID, ACCOUNT_UUID);
+        verifyNoInteractions(aiSummaryRepository);
     }
 
     @Test
