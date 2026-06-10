@@ -1,5 +1,7 @@
 package com.woorifisa.won_invest_channel_server.domain.invest.api;
 
+import com.woorifisa.won_invest_channel_server.domain.invest.dto.request.InvestAutoInvestExecutionHistoryQuery;
+import com.woorifisa.won_invest_channel_server.domain.invest.dto.response.InvestAutoInvestExecutionHistoryResponse;
 import com.woorifisa.won_invest_channel_server.domain.invest.dto.response.InvestEtfHoldingsResponse;
 import com.woorifisa.won_invest_channel_server.domain.invest.service.InvestEtfQueryService;
 import com.woorifisa.won_invest_channel_server.global.config.SecurityConfig;
@@ -105,6 +107,39 @@ class InvestEtfApiTest {
     }
 
     @Test
+    @DisplayName("인증된 요청이면 공통 응답 포맷으로 자동 투자 체결 이력을 반환한다")
+    void getAutoInvestExecutionHistories_success() throws Exception {
+        given(investEtfQueryService.getAutoInvestExecutionHistories(
+                eq(USER_UUID),
+                eq(ACCOUNT_UUID),
+                eq(new InvestAutoInvestExecutionHistoryQuery(
+                        OffsetDateTime.parse("2026-06-01T00:00:00+09:00"),
+                        OffsetDateTime.parse("2026-06-11T23:59:59+09:00"),
+                        "COMPLETED",
+                        "VOO",
+                        null,
+                        20
+                ))
+        )).willReturn(autoInvestResponse());
+
+        mockMvc.perform(get("/api/invest/accounts/{accountUuid}/auto-invest/executions", ACCOUNT_UUID)
+                        .header("X-Service-ID", "WOORI-FISA-APP-01")
+                        .header("X-Transaction-ID", "TX-20260512-INV02")
+                        .header(HttpHeaders.AUTHORIZATION, bearerToken())
+                        .queryParam("from", "2026-06-01T00:00:00+09:00")
+                        .queryParam("to", "2026-06-11T23:59:59+09:00")
+                        .queryParam("status", "COMPLETED")
+                        .queryParam("ticker", "VOO"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.status").value(200))
+                .andExpect(jsonPath("$.code").value("INVEST_200_010"))
+                .andExpect(jsonPath("$.message").value("ETF 자동 투자 체결 이력 조회가 완료되었습니다."))
+                .andExpect(jsonPath("$.data.histories[0].ticker").value("VOO"))
+                .andExpect(jsonPath("$.data.histories[0].executionStatus").value("COMPLETED"))
+                .andExpect(jsonPath("$.data.hasNext").value(true));
+    }
+
+    @Test
     @DisplayName("인증 없는 요청이면 401을 반환한다")
     void getAccountEtfs_unauthorized() throws Exception {
         mockMvc.perform(get("/api/invest/accounts/{accountUuid}/etfs", ACCOUNT_UUID)
@@ -114,6 +149,20 @@ class InvestEtfApiTest {
                 .andExpect(jsonPath("$.status").value(401))
                 .andExpect(jsonPath("$.code").value("AUTH_401_001"))
                 .andExpect(jsonPath("$.message").value("인증이 필요합니다."));
+    }
+
+    @Test
+    @DisplayName("자동 투자 체결 이력 조회 시 size가 100보다 크면 400을 반환한다")
+    void getAutoInvestExecutionHistories_invalidSize() throws Exception {
+        mockMvc.perform(get("/api/invest/accounts/{accountUuid}/auto-invest/executions", ACCOUNT_UUID)
+                        .header("X-Service-ID", "WOORI-FISA-APP-01")
+                        .header("X-Transaction-ID", "TX-20260512-INV03")
+                        .header(HttpHeaders.AUTHORIZATION, bearerToken())
+                        .queryParam("size", "101"))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.status").value(400))
+                .andExpect(jsonPath("$.code").value("COM_400_002"))
+                .andExpect(jsonPath("$.message").value("유효하지 않은 요청값입니다."));
     }
 
     @Test
@@ -160,7 +209,53 @@ class InvestEtfApiTest {
                 .andExpect(jsonPath("$.data.holdings[0].ticker").value("VOO"));
     }
 
+    @Test
+    @DisplayName("내부 API 인증 헤더가 유효하면 공통 응답 포맷으로 자동 투자 체결 이력을 반환한다")
+    void getInternalAutoInvestExecutionHistories_success() throws Exception {
+        given(investEtfQueryService.getAutoInvestExecutionHistories(
+                eq(USER_UUID),
+                eq(ACCOUNT_UUID),
+                eq(new InvestAutoInvestExecutionHistoryQuery(null, null, null, null, "cursor-1", 10))
+        )).willReturn(autoInvestResponse());
+
+        mockMvc.perform(get("/internal/invest/accounts/{accountUuid}/auto-invest/executions", ACCOUNT_UUID)
+                        .header("X-Service-ID", "won-card-channel")
+                        .header("X-Internal-Api-Key", "internal-test-key")
+                        .header("X-User-UUID", USER_UUID.toString())
+                        .queryParam("cursor", "cursor-1")
+                        .queryParam("size", "10"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.status").value(200))
+                .andExpect(jsonPath("$.code").value("INVEST_200_010"))
+                .andExpect(jsonPath("$.data.histories[0].ticker").value("VOO"));
+    }
+
     private String bearerToken() {
         return "Bearer " + jwtTokenProvider.generateAccessToken(USER_UUID, USER_UUID, "jti-test");
+    }
+
+    private InvestAutoInvestExecutionHistoryResponse autoInvestResponse() {
+        return new InvestAutoInvestExecutionHistoryResponse(
+                OffsetDateTime.parse("2026-06-11T10:30:00+09:00"),
+                List.of(new InvestAutoInvestExecutionHistoryResponse.History(
+                        12031L,
+                        882193L,
+                        1L,
+                        "Vanguard S&P 500 ETF",
+                        "VOO",
+                        "COMPLETED",
+                        new BigDecimal("15000.00"),
+                        new BigDecimal("0.02730000"),
+                        new BigDecimal("0.02730000"),
+                        new BigDecimal("549.1200"),
+                        new BigDecimal("14982.3300"),
+                        OffsetDateTime.parse("2026-06-10T22:00:00+09:00"),
+                        OffsetDateTime.parse("2026-06-10T22:00:03+09:00"),
+                        null,
+                        null
+                )),
+                "2026-06-10T22:00:03+09:00|12031",
+                true
+        );
     }
 }
