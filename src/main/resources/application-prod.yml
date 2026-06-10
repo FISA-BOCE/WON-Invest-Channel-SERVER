@@ -1,5 +1,5 @@
 server:
-  port: 8083
+  port: ${SERVER_PORT:8083}
 
 spring:
   datasource:
@@ -37,7 +37,7 @@ internal:
   allowed-service-ids: won-admin,won-ai-server, won-card-channel
   services:
     invest-core:
-      base-url: ${INVEST_CHANNEL_BASE_URL:http://dummy-invest-channel:8080}
+      base-url: ${INVEST_CORE_BASE_URL:http://dummy-invest-core:8080}
     common:
       base-url: ${COMMON_BASE_URL:http://dummy-common:8080}
 
@@ -49,14 +49,12 @@ aws:
     sweep-result-queue-url: ${SQS_SWEEP_RESULT_QUEUE_URL:https://sqs.ap-northeast-2.amazonaws.com/000000000000/dummy-result.fifo}
 
 sweep:
-  result:
-    consumer:
-      enabled: false
-      fixed-delay-ms: 10000
-      max-messages: 10
-      wait-time-seconds: 1
-      processing-timeout-seconds: 300
-      worker-count: 8
+  consumer:
+    enabled: false
+    max-messages: 10
+    wait-time-seconds: 1
+    processing-timeout-seconds: 300
+    worker-count: 8
 
   outbox:
     publisher:
