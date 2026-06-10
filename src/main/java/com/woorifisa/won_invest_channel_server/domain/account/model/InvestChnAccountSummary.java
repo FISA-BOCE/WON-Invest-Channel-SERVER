@@ -38,25 +38,33 @@ public class InvestChnAccountSummary extends BaseTimeEntity {
     @Column(name = "account_no_display", nullable = false)
     private String accountNoDisplay;
 
+    @Column(name = "account_holder_name", length = 50)
+    private String accountHolderName;
+
     @Enumerated(EnumType.STRING)
     @Column(name = "account_status", nullable = false)
     private AccountStatus accountStatus;
 
     @Builder
     public InvestChnAccountSummary(UUID investAccountUuid, UUID investUserUuid, UUID userUuid,
-                                   String accountNoDisplay, AccountStatus accountStatus) {
+                                   String accountNoDisplay, String accountHolderName, AccountStatus accountStatus) {
         this.investAccountUuid = investAccountUuid;
         this.investUserUuid = investUserUuid;
         this.userUuid = userUuid;
         this.accountNoDisplay = accountNoDisplay;
+        this.accountHolderName = accountHolderName;
         this.accountStatus = accountStatus;
     }
 
     public void updateSummary(
             String accountNoDisplay,
+            String accountHolderName,
             AccountStatus accountStatus
     ) {
         this.accountNoDisplay = accountNoDisplay;
+        if (accountHolderName != null && !accountHolderName.isBlank()) {
+            this.accountHolderName = accountHolderName;
+        }
         this.accountStatus = accountStatus;
     }
 }

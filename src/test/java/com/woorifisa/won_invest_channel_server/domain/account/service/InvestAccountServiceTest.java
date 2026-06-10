@@ -108,6 +108,7 @@ class InvestAccountServiceTest {
                 .investUserUuid(INVEST_USER_UUID)
                 .userUuid(USER_UUID)
                 .accountNoDisplay("123-***-***456")
+                .accountHolderName("홍길동")
                 .accountStatus(AccountStatus.ACTIVE)
                 .build();
         InvestChnAccountSummary suspendedAccount = InvestChnAccountSummary.builder()
@@ -115,6 +116,7 @@ class InvestAccountServiceTest {
                 .investUserUuid(UUID.fromString("55555555-5555-5555-5555-555555555555"))
                 .userUuid(USER_UUID)
                 .accountNoDisplay("987-***-***654")
+                .accountHolderName("남궁종연")
                 .accountStatus(AccountStatus.SUSPENDED)
                 .build();
         given(accountSummaryRepository.findAllByUserUuidOrderByCreatedAtDesc(USER_UUID))
@@ -150,6 +152,7 @@ class InvestAccountServiceTest {
                 .investUserUuid(INVEST_USER_UUID)
                 .userUuid(USER_UUID)
                 .accountNoDisplay("123-***-***456")
+                .accountHolderName("홍길동")
                 .accountStatus(AccountStatus.ACTIVE)
                 .build();
         given(accountSummaryRepository.findById(ACCOUNT_UUID)).willReturn(Optional.of(account));
@@ -180,6 +183,7 @@ class InvestAccountServiceTest {
                 .investUserUuid(INVEST_USER_UUID)
                 .userUuid(UUID.fromString("aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa"))
                 .accountNoDisplay("123-***-***456")
+                .accountHolderName("홍길동")
                 .accountStatus(AccountStatus.ACTIVE)
                 .build();
         given(accountSummaryRepository.findById(ACCOUNT_UUID)).willReturn(Optional.of(account));
@@ -197,6 +201,7 @@ class InvestAccountServiceTest {
                 INVEST_USER_UUID,
                 USER_UUID,
                 "123-***-***456",
+                "홍길동",
                 "ACTIVE"
         );
         given(accountSummaryRepository.findById(ACCOUNT_UUID)).willReturn(Optional.empty());
@@ -209,6 +214,7 @@ class InvestAccountServiceTest {
         assertThat(response.investAccountUuid()).isEqualTo(ACCOUNT_UUID);
         assertThat(response.investUserUuid()).isEqualTo(INVEST_USER_UUID);
         assertThat(response.userUuid()).isEqualTo(USER_UUID);
+        assertThat(response.accountHolderName()).isEqualTo("홍길동");
         assertThat(response.accountStatus()).isEqualTo("ACTIVE");
     }
 
@@ -220,12 +226,14 @@ class InvestAccountServiceTest {
                 .investUserUuid(UUID.fromString("99999999-9999-9999-9999-999999999999"))
                 .userUuid(UUID.fromString("88888888-8888-8888-8888-888888888888"))
                 .accountNoDisplay("111-***-***111")
+                .accountHolderName("기존이름")
                 .accountStatus(AccountStatus.INACTIVE)
                 .build();
         InternalUpsertInvestAccountSummaryRequest request = new InternalUpsertInvestAccountSummaryRequest(
                 INVEST_USER_UUID,
                 USER_UUID,
                 "123-***-***456",
+                "새이름",
                 "SUSPENDED"
         );
         given(accountSummaryRepository.findById(ACCOUNT_UUID)).willReturn(Optional.of(existingAccount));
@@ -240,6 +248,7 @@ class InvestAccountServiceTest {
         assertThat(response.userUuid())
                 .isEqualTo(UUID.fromString("88888888-8888-8888-8888-888888888888"));
         assertThat(response.accountNoDisplay()).isEqualTo("123-***-***456");
+        assertThat(response.accountHolderName()).isEqualTo("새이름");
         assertThat(response.accountStatus()).isEqualTo("SUSPENDED");
     }
 
@@ -251,12 +260,14 @@ class InvestAccountServiceTest {
                 .investUserUuid(INVEST_USER_UUID)
                 .userUuid(USER_UUID)
                 .accountNoDisplay("111-***-***111")
+                .accountHolderName("기존이름")
                 .accountStatus(AccountStatus.INACTIVE)
                 .build();
         InternalUpsertInvestAccountSummaryRequest request = new InternalUpsertInvestAccountSummaryRequest(
                 INVEST_USER_UUID,
                 USER_UUID,
                 "123-***-***456",
+                "홍길동",
                 "ACTIVE"
         );
         given(accountSummaryRepository.findById(ACCOUNT_UUID))
@@ -271,6 +282,7 @@ class InvestAccountServiceTest {
 
         assertThat(response.investAccountUuid()).isEqualTo(ACCOUNT_UUID);
         assertThat(response.accountNoDisplay()).isEqualTo("123-***-***456");
+        assertThat(response.accountHolderName()).isEqualTo("홍길동");
         assertThat(response.accountStatus()).isEqualTo("ACTIVE");
     }
 

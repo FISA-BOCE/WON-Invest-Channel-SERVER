@@ -15,6 +15,11 @@ import java.util.UUID;
 
 public interface InvestChnAiSummaryRepository extends JpaRepository<InvestChnAiSummary, Long> {
 
+    Optional<InvestChnAiSummary> findTopByUserUuidAndInvestAccountUuidOrderByLastSyncedAtDescSummaryIdDesc(
+            UUID userUuid,
+            UUID investAccountUuid
+    );
+
     @Query(
             value = """
                     SELECT

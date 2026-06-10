@@ -69,6 +69,7 @@ class InvestInternalAccountSummaryApiTest {
                 INVEST_USER_UUID,
                 USER_UUID,
                 "123-***-***456",
+                "홍길동",
                 "ACTIVE"
         );
 
@@ -90,6 +91,7 @@ class InvestInternalAccountSummaryApiTest {
                 INVEST_USER_UUID,
                 USER_UUID,
                 "123-***-***456",
+                "홍길동",
                 "SUSPENDED"
         );
         given(investAccountService.upsertAccountSummary(eq(ACCOUNT_UUID), eq(request)))
@@ -98,6 +100,7 @@ class InvestInternalAccountSummaryApiTest {
                         INVEST_USER_UUID,
                         USER_UUID,
                         "123-***-***456",
+                        "홍길동",
                         "SUSPENDED"
                 ));
 
