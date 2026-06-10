@@ -44,6 +44,8 @@ public class SecurityConfig {
                         .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
                         .requestMatchers("/actuator/**", "/swagger-ui/**", "/v3/api-docs/**").permitAll()
                         .requestMatchers("/internal/**").hasRole("INTERNAL")
+                        .requestMatchers(HttpMethod.GET, "/api/admin/invest/**").permitAll()
+                        .requestMatchers(HttpMethod.POST, "/api/admin/invest/outbox-events/*/retry").permitAll()
                         .requestMatchers(HttpMethod.POST, "/api/invest/accounts/new", "/api/invest/accounts/link").authenticated()
                         .requestMatchers(HttpMethod.GET, "/api/invest/etfs").authenticated()
                         .requestMatchers(HttpMethod.GET, "/api/invest/etfs/*").authenticated()
@@ -61,7 +63,7 @@ public class SecurityConfig {
     @Bean
     public CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration configuration = new CorsConfiguration();
-        configuration.setAllowedOrigins(List.of("http://localhost:3000"));
+        configuration.setAllowedOrigins(List.of("http://localhost:3000", "http://localhost:5173"));
         configuration.setAllowedMethods(List.of("GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"));
         configuration.setAllowedHeaders(List.of("Authorization", "Content-Type", "X-Transaction-Id"));
         configuration.setAllowCredentials(true);
