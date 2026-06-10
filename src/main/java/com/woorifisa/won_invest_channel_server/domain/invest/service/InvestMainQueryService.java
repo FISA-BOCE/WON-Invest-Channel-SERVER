@@ -39,9 +39,10 @@ public class InvestMainQueryService {
                 .orElse(null);
 
         List<InvestMainResponse.RecentPayment> recentPayments = holdingSummaryRepository
-                .findByInvestAccountUuidOrderByLastSyncedAtDescHoldingSummaryIdDesc(accountSummary.getInvestAccountUuid())
+                .findTop2ByInvestAccountUuidOrderByLastSyncedAtDescHoldingSummaryIdDesc(
+                        accountSummary.getInvestAccountUuid()
+                )
                 .stream()
-                .limit(2)
                 .map(this::toRecentPayment)
                 .toList();
 

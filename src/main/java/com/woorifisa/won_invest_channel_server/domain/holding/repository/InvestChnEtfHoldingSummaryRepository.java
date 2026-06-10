@@ -7,5 +7,7 @@ import org.springframework.data.jpa.repository.JpaRepository;
 
 public interface InvestChnEtfHoldingSummaryRepository extends JpaRepository<InvestChnEtfHoldingSummary, Long> {
 
-    List<InvestChnEtfHoldingSummary> findByInvestAccountUuidOrderByLastSyncedAtDescHoldingSummaryIdDesc(UUID investAccountUuid);
+    List<InvestChnEtfHoldingSummary> findTop2ByInvestAccountUuidOrderByLastSyncedAtDescHoldingSummaryIdDesc(
+            UUID investAccountUuid
+    );
 }
