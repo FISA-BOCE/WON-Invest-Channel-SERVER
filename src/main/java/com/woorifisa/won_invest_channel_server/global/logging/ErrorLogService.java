@@ -3,11 +3,14 @@ package com.woorifisa.won_invest_channel_server.global.logging;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.http.MediaType;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.transaction.event.TransactionPhase;
+import org.springframework.transaction.event.TransactionalEventListener;
 import org.springframework.web.reactive.function.client.WebClient;
 
 import java.util.Map;
@@ -18,6 +21,7 @@ import java.util.Map;
 public class ErrorLogService {
 
     private final ErrorLogRepository errorLogRepository;
+    private final ApplicationEventPublisher eventPublisher;
     private final WebClient.Builder webClientBuilder;
 
     @Value("${slack.webhook-url:}")
@@ -33,8 +37,13 @@ public class ErrorLogService {
                 .build());
 
         if (status >= 500 && slackWebhookUrl != null && !slackWebhookUrl.isBlank()) {
-            sendSlackAlert(status, method, uri, elapsedMs);
+            eventPublisher.publishEvent(new SlackAlertEvent(status, method, uri, elapsedMs));
         }
+    }
+
+    @TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT)
+    public void handleSlackAlert(SlackAlertEvent event) {
+        sendSlackAlert(event.status(), event.method(), event.uri(), event.elapsedMs());
     }
 
     @Transactional(readOnly = true)
