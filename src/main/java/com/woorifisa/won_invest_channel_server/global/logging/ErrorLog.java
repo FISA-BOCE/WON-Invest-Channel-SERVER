@@ -10,7 +10,10 @@ import lombok.NoArgsConstructor;
 @Getter
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 @Entity
-@Table(name = "error_log")
+@Table(name = "error_log", indexes = {
+        @Index(name = "idx_error_log_status", columnList = "status"),
+        @Index(name = "idx_error_log_created_at", columnList = "created_at")
+})
 public class ErrorLog extends BaseTimeEntity {
 
     @Id
@@ -22,7 +25,7 @@ public class ErrorLog extends BaseTimeEntity {
     @Column(length = 10)
     private String method;
 
-    @Column(length = 500)
+    @Column(length = 1000)
     private String uri;
 
     private long elapsedMs;

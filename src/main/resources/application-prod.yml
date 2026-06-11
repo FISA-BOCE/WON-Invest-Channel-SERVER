@@ -32,6 +32,8 @@ logging:
   structured:
     format:
       console: logstash
+  error-log:
+    retention-days: 7
 
 features:
   aidb:

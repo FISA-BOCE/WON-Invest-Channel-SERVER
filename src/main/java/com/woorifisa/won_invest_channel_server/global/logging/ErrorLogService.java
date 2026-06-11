@@ -10,6 +10,8 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.reactive.function.client.WebClient;
 
+import java.util.Map;
+
 @Slf4j
 @Service
 @RequiredArgsConstructor
@@ -46,9 +48,9 @@ public class ErrorLogService {
     }
 
     private void sendSlackAlert(int status, String method, String uri, long elapsedMs) {
-        String payload = String.format(
-                "{\"text\": \"[INVEST-CHANNEL] %d ERROR\\n%s %s (elapsed: %dms)\"}",
-                status, method, uri, elapsedMs
+        Map<String, String> payload = Map.of(
+                "text", String.format("[INVEST-CHANNEL] %d ERROR\n%s %s (elapsed: %dms)",
+                        status, method, uri, elapsedMs)
         );
         webClientBuilder.build()
                 .post()
