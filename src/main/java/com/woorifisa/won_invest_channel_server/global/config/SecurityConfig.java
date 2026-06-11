@@ -42,7 +42,10 @@ public class SecurityConfig {
                 .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
-                        .requestMatchers("/actuator/**", "/swagger-ui/**", "/v3/api-docs/**").permitAll()
+                        .requestMatchers("/swagger-ui/**", "/v3/api-docs/**").permitAll()
+                        .requestMatchers("/actuator/health", "/actuator/prometheus").permitAll()
+                        .requestMatchers("/actuator/**").denyAll()
+                        .requestMatchers("/admin/**").permitAll()
                         .requestMatchers("/internal/**").hasRole("INTERNAL")
                         .requestMatchers(HttpMethod.POST, "/api/invest/accounts/new", "/api/invest/accounts/link").authenticated()
                         .requestMatchers(HttpMethod.GET, "/api/invest/etfs").authenticated()
