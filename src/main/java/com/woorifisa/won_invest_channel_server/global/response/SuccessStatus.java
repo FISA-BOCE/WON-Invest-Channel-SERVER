@@ -27,7 +27,8 @@ public enum SuccessStatus {
     ADMIN_INVEST_OUTBOX_EVENT_DETAIL_FOUND(HttpStatus.OK, "ADMIN_200_002", "관리자 증권 Outbox 이벤트 상세 조회가 완료되었습니다."),
     ADMIN_INVEST_OUTBOX_EVENT_RETRY_REQUESTED(HttpStatus.OK, "ADMIN_200_003", "관리자 증권 Outbox 이벤트 재처리 요청이 완료되었습니다."),
     ADMIN_INVEST_INBOX_EVENTS_FOUND(HttpStatus.OK, "ADMIN_200_004", "관리자 증권 Inbox 이벤트 목록 조회가 완료되었습니다."),
-    ADMIN_INVEST_INBOX_EVENT_DETAIL_FOUND(HttpStatus.OK, "ADMIN_200_005", "관리자 증권 Inbox 이벤트 상세 조회가 완료되었습니다.");
+    ADMIN_INVEST_INBOX_EVENT_DETAIL_FOUND(HttpStatus.OK, "ADMIN_200_005", "관리자 증권 Inbox 이벤트 상세 조회가 완료되었습니다."),
+    ADMIN_AUTO_INVEST_EXECUTIONS_FOUND(HttpStatus.OK, "ADMIN_200_006", "관리자 자동투자 실행 현황 조회가 완료되었습니다.");
 
     private final HttpStatus httpStatus;
     private final String code;
