@@ -1,6 +1,8 @@
 package com.woorifisa.won_invest_channel_server.domain.invest.service;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.woorifisa.won_invest_channel_server.domain.invest.dto.request.InvestAutoInvestExecutionHistoryQuery;
+import com.woorifisa.won_invest_channel_server.domain.invest.dto.response.InvestAutoInvestExecutionHistoryResponse;
 import com.woorifisa.won_invest_channel_server.domain.invest.dto.response.InvestEtfHoldingsResponse;
 import com.woorifisa.won_invest_channel_server.domain.invest.exception.code.InvestErrorCode;
 import com.woorifisa.won_invest_channel_server.domain.invest.external.InvestCoreEtfQueryApi;
@@ -129,6 +131,72 @@ class InvestCoreEtfQueryClientTest {
                         .isEqualTo(InvestErrorCode.INTERNAL_QUERY_FAILED));
     }
 
+    @Test
+    @DisplayName("Core 응답 data를 자동 투자 체결 이력 응답으로 반환한다")
+    void fetchAutoInvestExecutionHistories_success() {
+        InvestAutoInvestExecutionHistoryQuery query = new InvestAutoInvestExecutionHistoryQuery(
+                OffsetDateTime.parse("2026-06-01T00:00:00+09:00"),
+                OffsetDateTime.parse("2026-06-11T23:59:59+09:00"),
+                "COMPLETED",
+                "VOO",
+                "cursor-1",
+                20
+        );
+        InvestAutoInvestExecutionHistoryResponse coreData = autoInvestResponse();
+        given(investCoreEtfQueryApi.getAutoInvestExecutionHistories(
+                USER_UUID,
+                ACCOUNT_UUID,
+                query.from(),
+                query.to(),
+                "COMPLETED",
+                "VOO",
+                "cursor-1",
+                20
+        )).willReturn(new ApiResponse<>(200, "INVEST_200_010", "ETF 자동 투자 체결 이력 조회가 완료되었습니다.", coreData));
+
+        InvestAutoInvestExecutionHistoryResponse response =
+                investCoreEtfQueryClient.fetchAutoInvestExecutionHistories(USER_UUID, ACCOUNT_UUID, query);
+
+        assertThat(response).isSameAs(coreData);
+    }
+
+    @Test
+    @DisplayName("자동 투자 체결 이력 Core 응답 data가 없으면 AUTO_INVEST_EXECUTION_HISTORY_QUERY_FAILED 예외가 발생한다")
+    void fetchAutoInvestExecutionHistories_coreResponseWithoutData() {
+        InvestAutoInvestExecutionHistoryQuery query = new InvestAutoInvestExecutionHistoryQuery(
+                null, null, null, null, null, 20
+        );
+        given(investCoreEtfQueryApi.getAutoInvestExecutionHistories(
+                USER_UUID, ACCOUNT_UUID, null, null, null, null, null, 20
+        )).willReturn(new ApiResponse<>(200, "INVEST_200_010", "ETF 자동 투자 체결 이력 조회가 완료되었습니다.", null));
+
+        assertThatThrownBy(() -> investCoreEtfQueryClient.fetchAutoInvestExecutionHistories(USER_UUID, ACCOUNT_UUID, query))
+                .isInstanceOf(BusinessException.class)
+                .satisfies(ex -> assertThat(((BusinessException) ex).getErrorCode())
+                        .isEqualTo(InvestErrorCode.AUTO_INVEST_EXECUTION_HISTORY_QUERY_FAILED));
+    }
+
+    @Test
+    @DisplayName("자동 투자 체결 이력 Core 400 응답 code가 조회 조건 오류이면 INVALID_AUTO_INVEST_EXECUTION_QUERY 예외가 발생한다")
+    void fetchAutoInvestExecutionHistories_coreBadRequestInvalidQuery() {
+        InvestAutoInvestExecutionHistoryQuery query = new InvestAutoInvestExecutionHistoryQuery(
+                null, null, null, null, null, 20
+        );
+        given(investCoreEtfQueryApi.getAutoInvestExecutionHistories(
+                USER_UUID, ACCOUNT_UUID, null, null, null, null, null, 20
+        )).willThrow(feignException(
+                400,
+                "/internal/invest/accounts/" + ACCOUNT_UUID + "/auto-invest/executions",
+                "InvestCoreEtfQueryApi#getAutoInvestExecutionHistories",
+                "{\"status\":400,\"code\":\"INVEST_400_002\",\"message\":\"자동 투자 체결 이력 조회 조건이 올바르지 않습니다.\"}"
+        ));
+
+        assertThatThrownBy(() -> investCoreEtfQueryClient.fetchAutoInvestExecutionHistories(USER_UUID, ACCOUNT_UUID, query))
+                .isInstanceOf(BusinessException.class)
+                .satisfies(ex -> assertThat(((BusinessException) ex).getErrorCode())
+                        .isEqualTo(InvestErrorCode.INVALID_AUTO_INVEST_EXECUTION_QUERY));
+    }
+
     private InvestEtfHoldingsResponse response() {
         return new InvestEtfHoldingsResponse(
                 LocalDate.of(2026, 6, 4),
@@ -154,21 +222,52 @@ class InvestCoreEtfQueryClientTest {
         );
     }
 
+    private InvestAutoInvestExecutionHistoryResponse autoInvestResponse() {
+        return new InvestAutoInvestExecutionHistoryResponse(
+                OffsetDateTime.parse("2026-06-11T10:30:00+09:00"),
+                List.of(new InvestAutoInvestExecutionHistoryResponse.History(
+                        12031L,
+                        882193L,
+                        1L,
+                        "Vanguard S&P 500 ETF",
+                        "VOO",
+                        "COMPLETED",
+                        new BigDecimal("15000.00"),
+                        new BigDecimal("0.02730000"),
+                        new BigDecimal("0.02730000"),
+                        new BigDecimal("549.1200"),
+                        new BigDecimal("14982.3300"),
+                        OffsetDateTime.parse("2026-06-10T22:00:00+09:00"),
+                        OffsetDateTime.parse("2026-06-10T22:00:03+09:00"),
+                        null,
+                        null
+                )),
+                "2026-06-10T22:00:03+09:00|12031",
+                true
+        );
+    }
+
     private FeignException feignException(int status) {
-        return feignException(status, null);
+        return feignException(status, "/internal/invest/accounts/" + ACCOUNT_UUID + "/etfs",
+                "InvestCoreEtfQueryApi#getAccountEtfHoldings", null);
     }
 
     private FeignException feignException(int status, String body) {
+        return feignException(status, "/internal/invest/accounts/" + ACCOUNT_UUID + "/etfs",
+                "InvestCoreEtfQueryApi#getAccountEtfHoldings", body);
+    }
+
+    private FeignException feignException(int status, String url, String methodKey, String body) {
         Request request = Request.create(
                 Request.HttpMethod.GET,
-                "/internal/invest/accounts/" + ACCOUNT_UUID + "/etfs",
+                url,
                 Map.of(),
                 null,
                 null,
                 null
         );
         return FeignException.errorStatus(
-                "InvestCoreEtfQueryApi#getAccountEtfHoldings",
+                methodKey,
                 Response.builder()
                         .status(status)
                         .reason("error")

@@ -94,12 +94,22 @@ public class InvestChnOutboxEvent extends BaseTimeEntity {
         this.lastErrorMessage = truncate(errorMessage);
     }
 
+    public void markRetryRequested() {
+        this.publishStatus = SweepOutboxPublishStatus.RETRY;
+        this.nextRetryAt = LocalDateTime.now();
+    }
+
     public boolean isProcessing() {
         return this.publishStatus == SweepOutboxPublishStatus.PROCESSING;
     }
 
     public boolean isPublishTarget() {
         return this.publishStatus == SweepOutboxPublishStatus.PENDING
+                || this.publishStatus == SweepOutboxPublishStatus.RETRY;
+    }
+
+    public boolean isRetryRequestable() {
+        return this.publishStatus == SweepOutboxPublishStatus.FAILED
                 || this.publishStatus == SweepOutboxPublishStatus.RETRY;
     }
 

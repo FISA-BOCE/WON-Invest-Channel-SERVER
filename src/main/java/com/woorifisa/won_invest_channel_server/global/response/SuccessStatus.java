@@ -17,11 +17,19 @@ public enum SuccessStatus {
     INVEST_ACCOUNT_ETF_FOUND(HttpStatus.OK, "INVEST_200_007", "보유 ETF 조회가 완료되었습니다."),
     INVEST_ACCOUNT_DETAIL_FOUND(HttpStatus.OK, "INVEST_200_008", "증권 계좌 상세 조회가 완료되었습니다."),
     INVEST_MAIN_FOUND(HttpStatus.OK, "INVEST_200_009", "투자 자산 요약 조회가 완료되었습니다."),
+    INVEST_AUTO_INVEST_EXECUTION_HISTORY_FOUND(HttpStatus.OK, "INVEST_200_010", "ETF 자동 투자 체결 이력 조회가 완료되었습니다."),
 
     CORE_ETF_PRODUCT_SYNCED(HttpStatus.OK, "ETF_200_001", "ETF 상품 마스터 동기화가 완료되었습니다."),
     ETF_PRODUCT_SYNC_SUCCESS(HttpStatus.OK, "INVEST_200_002", "ETF 상품 동기화가 완료되었습니다."),
     ETF_PRODUCT_LIST_FOUND(HttpStatus.OK, "INVEST_200_003", "ETF 상품 목록 조회가 완료되었습니다."),
-    ETF_PRODUCT_DETAIL_FOUND(HttpStatus.OK, "INVEST_200_004", "ETF 상품 상세 조회가 완료되었습니다.");
+    ETF_PRODUCT_DETAIL_FOUND(HttpStatus.OK, "INVEST_200_004", "ETF 상품 상세 조회가 완료되었습니다."),
+
+    ADMIN_INVEST_OUTBOX_EVENTS_FOUND(HttpStatus.OK, "ADMIN_200_001", "관리자 증권 Outbox 이벤트 목록 조회가 완료되었습니다."),
+    ADMIN_INVEST_OUTBOX_EVENT_DETAIL_FOUND(HttpStatus.OK, "ADMIN_200_002", "관리자 증권 Outbox 이벤트 상세 조회가 완료되었습니다."),
+    ADMIN_INVEST_OUTBOX_EVENT_RETRY_REQUESTED(HttpStatus.OK, "ADMIN_200_003", "관리자 증권 Outbox 이벤트 재처리 요청이 완료되었습니다."),
+    ADMIN_INVEST_INBOX_EVENTS_FOUND(HttpStatus.OK, "ADMIN_200_004", "관리자 증권 Inbox 이벤트 목록 조회가 완료되었습니다."),
+    ADMIN_INVEST_INBOX_EVENT_DETAIL_FOUND(HttpStatus.OK, "ADMIN_200_005", "관리자 증권 Inbox 이벤트 상세 조회가 완료되었습니다."),
+    ADMIN_AUTO_INVEST_EXECUTIONS_FOUND(HttpStatus.OK, "ADMIN_200_006", "관리자 자동투자 실행 현황 조회가 완료되었습니다.");
 
     private final HttpStatus httpStatus;
     private final String code;

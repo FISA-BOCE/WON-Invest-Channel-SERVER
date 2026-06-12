@@ -1,5 +1,6 @@
 package com.woorifisa.won_invest_channel_server.global.config;
 
+import com.woorifisa.won_invest_channel_server.global.security.AdminApiAuthFilter;
 import com.woorifisa.won_invest_channel_server.global.security.InternalApiAuthFilter;
 import com.woorifisa.won_invest_channel_server.global.security.JwtAuthenticationFilter;
 import com.woorifisa.won_invest_channel_server.global.security.RestAccessDeniedHandler;
@@ -28,6 +29,7 @@ import java.util.List;
 public class SecurityConfig {
 
     private final JwtAuthenticationFilter jwtAuthenticationFilter;
+    private final AdminApiAuthFilter adminApiAuthFilter;
     private final InternalApiAuthFilter internalApiAuthFilter;
     private final RestAuthenticationEntryPoint authenticationEntryPoint;
     private final RestAccessDeniedHandler accessDeniedHandler;
@@ -42,8 +44,13 @@ public class SecurityConfig {
                 .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
-                        .requestMatchers("/actuator/**", "/swagger-ui/**", "/v3/api-docs/**").permitAll()
+                        .requestMatchers("/swagger-ui/**", "/v3/api-docs/**").permitAll()
+                        .requestMatchers("/actuator/health", "/actuator/prometheus").permitAll()
+                        .requestMatchers("/actuator/**").denyAll()
+                        .requestMatchers("/admin/**").permitAll()
                         .requestMatchers("/internal/**").hasRole("INTERNAL")
+                        .requestMatchers(HttpMethod.GET, "/api/admin/invest/**").hasRole("ADMIN")
+                        .requestMatchers(HttpMethod.POST, "/api/admin/invest/outbox-events/*/retry").hasRole("ADMIN")
                         .requestMatchers(HttpMethod.POST, "/api/invest/accounts/new", "/api/invest/accounts/link").authenticated()
                         .requestMatchers(HttpMethod.GET, "/api/invest/etfs").authenticated()
                         .requestMatchers(HttpMethod.GET, "/api/invest/etfs/*").authenticated()
@@ -54,6 +61,7 @@ public class SecurityConfig {
                         .accessDeniedHandler(accessDeniedHandler)
                 )
                 .addFilterBefore(internalApiAuthFilter, UsernamePasswordAuthenticationFilter.class)
+                .addFilterBefore(adminApiAuthFilter, UsernamePasswordAuthenticationFilter.class)
                 .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class)
                 .build();
     }
@@ -61,9 +69,9 @@ public class SecurityConfig {
     @Bean
     public CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration configuration = new CorsConfiguration();
-        configuration.setAllowedOrigins(List.of("http://localhost:3000"));
+        configuration.setAllowedOrigins(List.of("http://localhost:3000", "http://localhost:5173"));
         configuration.setAllowedMethods(List.of("GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"));
-        configuration.setAllowedHeaders(List.of("Authorization", "Content-Type"));
+        configuration.setAllowedHeaders(List.of("Authorization", "Content-Type", "X-Transaction-Id", "X-Admin-Api-Token"));
         configuration.setAllowCredentials(true);
 
         UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
