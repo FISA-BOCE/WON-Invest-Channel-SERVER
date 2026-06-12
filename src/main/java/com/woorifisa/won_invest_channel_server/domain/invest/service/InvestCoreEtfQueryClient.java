@@ -2,6 +2,8 @@ package com.woorifisa.won_invest_channel_server.domain.invest.service;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.woorifisa.won_invest_channel_server.domain.invest.dto.request.InvestAutoInvestExecutionHistoryQuery;
+import com.woorifisa.won_invest_channel_server.domain.invest.dto.response.InvestAutoInvestExecutionHistoryResponse;
 import com.woorifisa.won_invest_channel_server.domain.invest.dto.response.InvestEtfHoldingsResponse;
 import com.woorifisa.won_invest_channel_server.domain.invest.exception.code.InvestErrorCode;
 import com.woorifisa.won_invest_channel_server.domain.invest.external.InvestCoreEtfQueryApi;
@@ -51,6 +53,54 @@ public class InvestCoreEtfQueryClient {
                     coreResponse == null ? null : coreResponse.status(),
                     coreResponse == null ? null : coreResponse.code());
             throw new BusinessException(InvestErrorCode.INTERNAL_QUERY_FAILED);
+        }
+
+        return coreResponse.data();
+    }
+
+    @Transactional(propagation = Propagation.NOT_SUPPORTED)
+    public InvestAutoInvestExecutionHistoryResponse fetchAutoInvestExecutionHistories(
+            UUID userUuid,
+            UUID accountUuid,
+            InvestAutoInvestExecutionHistoryQuery query
+    ) {
+        ApiResponse<InvestAutoInvestExecutionHistoryResponse> coreResponse;
+        try {
+            coreResponse = investCoreEtfQueryApi.getAutoInvestExecutionHistories(
+                    userUuid,
+                    accountUuid,
+                    query.from(),
+                    query.to(),
+                    query.normalizedStatus(),
+                    query.normalizedTicker(),
+                    query.normalizedCursor(),
+                    query.normalizedSize()
+            );
+        } catch (FeignException.NotFound e) {
+            log.warn("Invest Core auto invest execution history account not found [status={}]", e.status());
+            throw new BusinessException(InvestErrorCode.ACCOUNT_NOT_FOUND, e);
+        } catch (FeignException.Forbidden e) {
+            log.warn("Invest Core auto invest execution history ownership denied [status={}]", e.status());
+            throw new BusinessException(InvestErrorCode.ACCOUNT_NOT_OWNER, e);
+        } catch (FeignException.BadRequest e) {
+            log.warn("Invest Core auto invest execution history bad request [status={}]", e.status());
+            if (hasCoreErrorCode(e, InvestErrorCode.INVALID_ACCOUNT_STATUS.getCode())) {
+                throw new BusinessException(InvestErrorCode.INVALID_ACCOUNT_STATUS, e);
+            }
+            if (hasCoreErrorCode(e, InvestErrorCode.INVALID_AUTO_INVEST_EXECUTION_QUERY.getCode())) {
+                throw new BusinessException(InvestErrorCode.INVALID_AUTO_INVEST_EXECUTION_QUERY, e);
+            }
+            throw new BusinessException(InvestErrorCode.AUTO_INVEST_EXECUTION_HISTORY_QUERY_FAILED, e);
+        } catch (FeignException e) {
+            log.warn("Invest Core auto invest execution history query failed [status={}]", e.status());
+            throw new BusinessException(InvestErrorCode.AUTO_INVEST_EXECUTION_HISTORY_QUERY_FAILED, e);
+        }
+
+        if (coreResponse == null || coreResponse.status() != 200 || coreResponse.data() == null) {
+            log.warn("Invest Core auto invest execution history response invalid [status={}, code={}]",
+                    coreResponse == null ? null : coreResponse.status(),
+                    coreResponse == null ? null : coreResponse.code());
+            throw new BusinessException(InvestErrorCode.AUTO_INVEST_EXECUTION_HISTORY_QUERY_FAILED);
         }
 
         return coreResponse.data();
