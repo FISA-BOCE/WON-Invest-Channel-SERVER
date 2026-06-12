@@ -3,6 +3,7 @@ package com.woorifisa.won_invest_channel_server.global.exception.handler;
 import com.woorifisa.won_invest_channel_server.global.exception.code.CommonErrorCode;
 import com.woorifisa.won_invest_channel_server.global.exception.code.ErrorCode;
 import com.woorifisa.won_invest_channel_server.global.response.ErrorResponse;
+import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.ConstraintViolationException;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.ResponseEntity;
@@ -20,9 +21,9 @@ import java.util.stream.Collectors;
 public class GlobalExceptionHandler {
 
     @ExceptionHandler(BusinessException.class)
-    public ResponseEntity<ErrorResponse> handleBusinessException(BusinessException e) {
+    public ResponseEntity<ErrorResponse> handleBusinessException(BusinessException e, HttpServletRequest request) {
         ErrorCode errorCode = e.getErrorCode();
-        log.warn("business exception: code={}, type={}", errorCode.getCode(), e.getClass().getSimpleName());
+        log.warn("business exception: code={}, method={}, uri={}", errorCode.getCode(), request.getMethod(), request.getRequestURI());
         return toResponseEntity(errorCode);
     }
 
@@ -32,20 +33,20 @@ public class GlobalExceptionHandler {
             ServletRequestBindingException.class,
             ConstraintViolationException.class
     })
-    public ResponseEntity<ErrorResponse> handleBadRequest(Exception e) {
-        logBadRequest(e);
+    public ResponseEntity<ErrorResponse> handleBadRequest(Exception e, HttpServletRequest request) {
+        logBadRequest(e, request);
         return toResponseEntity(CommonErrorCode.INVALID_INPUT_VALUE);
     }
 
     @ExceptionHandler(HttpRequestMethodNotSupportedException.class)
-    public ResponseEntity<ErrorResponse> handleMethodNotSupported(HttpRequestMethodNotSupportedException e) {
-        log.warn("method not supported: {}", e.getMessage());
+    public ResponseEntity<ErrorResponse> handleMethodNotSupported(HttpRequestMethodNotSupportedException e, HttpServletRequest request) {
+        log.warn("method not supported: method={}, uri={}", request.getMethod(), request.getRequestURI());
         return toResponseEntity(CommonErrorCode.METHOD_NOT_ALLOWED);
     }
 
     @ExceptionHandler(Exception.class)
-    public ResponseEntity<ErrorResponse> handleException(Exception e) {
-        log.error("unexpected exception", e);
+    public ResponseEntity<ErrorResponse> handleException(Exception e, HttpServletRequest request) {
+        log.error("unexpected exception: method={}, uri={}", request.getMethod(), request.getRequestURI(), e);
         return toResponseEntity(CommonErrorCode.INTERNAL_SERVER_ERROR);
     }
 
@@ -53,26 +54,26 @@ public class GlobalExceptionHandler {
     // private helpers
     // -------------------------------------------------------------------------
 
-    private void logBadRequest(Exception e) {
+    private void logBadRequest(Exception e, HttpServletRequest request) {
         if (e instanceof MethodArgumentNotValidException validationEx) {
             String fields = validationEx.getBindingResult().getFieldErrors().stream()
                     .map(fe -> fe.getField() + ":" + fe.getCode())
                     .collect(Collectors.joining(", "));
-            log.warn("bad request: type={}, fields={}", e.getClass().getSimpleName(), fields, e);
+            log.warn("bad request: method={}, uri={}, fields={}", request.getMethod(), request.getRequestURI(), fields);
 
         } else if (e instanceof ConstraintViolationException constraintEx) {
             String violations = constraintEx.getConstraintViolations().stream()
                     .map(v -> v.getPropertyPath() + ":" + v.getMessageTemplate())
                     .collect(Collectors.joining(", "));
-            log.warn("bad request: type={}, violations={}", e.getClass().getSimpleName(), violations, e);
+            log.warn("bad request: method={}, uri={}, violations={}", request.getMethod(), request.getRequestURI(), violations);
 
         } else if (e instanceof HttpMessageNotReadableException notReadableEx) {
             Throwable rootCause = notReadableEx.getMostSpecificCause();
             String rootCauseType = rootCause == null ? "unknown" : rootCause.getClass().getSimpleName();
-            log.warn("bad request: type={}, rootCause={}", e.getClass().getSimpleName(), rootCauseType, e);
+            log.warn("bad request: method={}, uri={}, rootCause={}", request.getMethod(), request.getRequestURI(), rootCauseType);
 
         } else {
-            log.warn("bad request: type={}", e.getClass().getSimpleName(), e);
+            log.warn("bad request: method={}, uri={}", request.getMethod(), request.getRequestURI());
         }
     }
 
